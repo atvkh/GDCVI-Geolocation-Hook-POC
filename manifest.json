@@ -2,8 +2,8 @@
     "name" : "智能打卡",
     "appid" : "__UNI__6FEC032",
     "description" : "",
-    "versionName" : "10.7.0",
-    "versionCode" : "100",
+    "versionName" : "10.8.0",
+    "versionCode" : 101,
     "transformPx" : false,
     /* 5+App特有相关 */
     "app-plus" : {

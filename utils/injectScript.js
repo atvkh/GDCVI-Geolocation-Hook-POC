@@ -209,47 +209,54 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			}, '*');
 		}, 50);
 
-		if(!document.getElementById('cyber_anim_styles')) {
-			const style = document.createElement('style');
-			style.id = 'cyber_anim_styles';
-			style.innerHTML = ':root { --cyber-primary: #cc97ff; --cyber-success: #4ade80; --cyber-info: #38bdf8; --cyber-danger: #ff6e84; --cyber-bg-modal: rgba(15, 15, 20, 0.95); } @keyframes cyber-pop { 0% { transform: translate(-50%, -40%); opacity: 0; } 100% { transform: translate(-50%, -50%); opacity: 1; } } @keyframes cyber-slide-down { 0% { top: -20px; opacity: 0; } 100% { top: 60px; opacity: 1; } } @keyframes cyber-slide-left { 0% { right: -50px; opacity: 0; } 100% { right: 15px; opacity: 1; } }';
-			(document.head || document.documentElement).appendChild(style);
-		}
+		const ensureStyles = () => {
+			if(!document.getElementById('cyber_anim_styles')) {
+				const style = document.createElement('style');
+				style.id = 'cyber_anim_styles';
+				style.innerHTML = ':root { --cyber-primary: #cc97ff; --cyber-success: #4ade80; --cyber-info: #38bdf8; --cyber-danger: #ff6e84; --cyber-bg-modal: rgba(15, 15, 20, 0.95); } @keyframes cyber-pop { 0% { transform: translate(-50%, -40%); opacity: 0; } 100% { transform: translate(-50%, -50%); opacity: 1; } } @keyframes cyber-slide-down { 0% { top: -20px; opacity: 0; } 100% { top: 60px; opacity: 1; } } @keyframes cyber-slide-left { 0% { right: -50px; opacity: 0; } 100% { right: 15px; opacity: 1; } }';
+				const root = document.head || document.documentElement || document.body;
+				if (root) root.appendChild(style);
+			}
+		};
 
-		const mountHUD = () => {
+		const ensureHUD = () => {
 			if (document.getElementById('cyber_hud')) return;
 			const monitor = document.createElement('div');
 			monitor.id = 'cyber_hud';
 			monitor.style.cssText = 'position:fixed;top:40px;left:50%;transform:translateX(-50%);background:rgba(10,10,10,0.85);border:1px solid var(--cyber-success);color:var(--cyber-success);padding:8px 16px;border-radius:20px;font-size:12px;font-weight:900;z-index:2147483647;backdrop-filter:blur(10px);box-shadow:0 0 20px rgba(74,222,128,0.2);display:flex;align-items:center;gap:8px;font-family:sans-serif;pointer-events:none;';
 			monitor.innerHTML = '<div style="width:8px;height:8px;border-radius:50%;background:var(--cyber-success);box-shadow:0 0 8px var(--cyber-success);"></div><span>PROXY HOOKED</span>';
-			(document.body || document.documentElement).appendChild(monitor);
+			const root = document.body || document.documentElement;
+			if (root) root.appendChild(monitor);
 		};
-		mountHUD();
-		document.addEventListener('DOMContentLoaded', mountHUD);
 
-		const mountCoordEditor = () => {
+		const ensureEditor = () => {
 			if (document.getElementById('cyber_coord_editor')) return;
 			const editor = document.createElement('div');
 			editor.id = 'cyber_coord_editor';
-			editor.style.cssText = 'position:fixed;top:90px;right:15px;background:var(--cyber-bg-modal);border:1px solid var(--cyber-info);padding:12px;border-radius:12px;z-index:2147483647;backdrop-filter:blur(10px);box-shadow:0 0 15px rgba(56,189,248,0.2);display:flex;flex-direction:column;font-family:sans-serif;width:150px;animation:cyber-slide-left 0.4s ease;user-select:none;';
+			
+			editor.style.cssText = 'position:fixed;top:90px;right:15px;background:var(--cyber-bg-modal);border:1px solid var(--cyber-info);padding:12px;border-radius:12px;z-index:2147483647;backdrop-filter:blur(10px);box-shadow:0 0 15px rgba(56,189,248,0.2);display:flex;flex-direction:column;font-family:sans-serif;width:150px;animation:cyber-slide-left 0.4s ease;user-select:none;touch-action:none;';
 			
 			editor.innerHTML = 
-				'<div id="cyber_drag_handle" style="font-size:11px;color:var(--cyber-info);font-weight:bold;text-align:center;letter-spacing:1px;margin-bottom:8px;padding:6px;background:rgba(56,189,248,0.1);border-radius:6px;cursor:move;">✥ 拖拽控制台</div>' +
+				'<div id="cyber_drag_handle" style="font-size:11px;color:var(--cyber-info);font-weight:bold;text-align:center;letter-spacing:1px;margin-bottom:8px;padding:6px;background:rgba(56,189,248,0.1);border-radius:6px;cursor:move;pointer-events:none;">✥ 控制台</div>' +
 				'<input id="cyber_lat_input" type="number" value="' + F_LAT + '" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:6px;padding:6px 4px;font-size:12px;text-align:center;box-sizing:border-box;margin-bottom:6px;" placeholder="Lat">' +
 				'<input id="cyber_lng_input" type="number" value="' + F_LNG + '" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:6px;padding:6px 4px;font-size:12px;text-align:center;box-sizing:border-box;margin-bottom:8px;" placeholder="Lng">' +
 				'<div style="display:flex;gap:6px;">' +
-					'<button id="cyber_coord_reset" style="flex:1;background:rgba(255,255,255,0.1);color:#fff;border:none;border-radius:6px;padding:8px 0;font-size:11px;cursor:pointer;">回校</button>' +
-					'<button id="cyber_coord_update" style="flex:2;background:var(--cyber-info);color:#000;border:none;border-radius:6px;padding:8px 0;font-weight:bold;font-size:11px;cursor:pointer;transition:all 0.2s;">覆盖更新</button>' +
+					'<button id="cyber_coord_reset" style="flex:1;background:rgba(255,255,255,0.1);color:#fff;border:none;border-radius:6px;padding:8px 0;font-size:11px;cursor:pointer;">回退</button>' +
+					'<button id="cyber_coord_update" style="flex:2;background:var(--cyber-info);color:#000;border:none;border-radius:6px;padding:8px 0;font-weight:bold;font-size:11px;cursor:pointer;transition:all 0.2s;">应用</button>' +
 				'</div>';
 			
-			(document.body || document.documentElement).appendChild(editor);
+			const root = document.body || document.documentElement;
+			if (root) root.appendChild(editor);
 
-			const handle = document.getElementById('cyber_drag_handle');
 			let isDragging = false;
 			let startX, startY, initialX, initialY;
+			let longPressTimer = null;
+			let wasDragging = false;
 
 			const dragStart = (e) => {
-				isDragging = true;
+				const targetTag = e.target.tagName.toLowerCase();
+				if (targetTag === 'input') return;
+
 				if(e.type === 'touchstart') {
 					startX = e.touches[0].clientX;
 					startY = e.touches[0].clientY;
@@ -257,38 +264,75 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 					startX = e.clientX;
 					startY = e.clientY;
 				}
+				
 				const rect = editor.getBoundingClientRect();
 				initialX = rect.left;
 				initialY = rect.top;
-				editor.style.right = 'auto'; 
-				editor.style.left = initialX + 'px';
-				editor.style.top = initialY + 'px';
-				editor.style.animation = 'none'; 
+				
+				clearTimeout(longPressTimer);
+				longPressTimer = setTimeout(() => {
+					isDragging = true;
+					editor.style.right = 'auto'; 
+					editor.style.left = initialX + 'px';
+					editor.style.top = initialY + 'px';
+					editor.style.animation = 'none'; 
+					editor.style.transform = 'scale(1.02)';
+					editor.style.transition = 'transform 0.2s';
+					try { if(navigator.vibrate) navigator.vibrate(40); } catch(err){}
+				}, 350);
 			};
 
 			const dragMove = (e) => {
-				if(!isDragging) return;
-				e.preventDefault(); 
-				let currentX, currentY;
-				if(e.type === 'touchmove') {
-					currentX = e.touches[0].clientX;
-					currentY = e.touches[0].clientY;
-				} else {
-					currentX = e.clientX;
-					currentY = e.clientY;
+				let currentX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+				let currentY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+
+				if(!isDragging) {
+					if (Math.abs(currentX - startX) > 10 || Math.abs(currentY - startY) > 10) {
+						clearTimeout(longPressTimer);
+					}
+					return;
 				}
-				editor.style.left = (initialX + currentX - startX) + 'px';
-				editor.style.top = (initialY + currentY - startY) + 'px';
+
+				e.preventDefault(); 
+				
+				let newX = initialX + currentX - startX;
+				let newY = initialY + currentY - startY;
+
+				const maxX = window.innerWidth - editor.offsetWidth;
+				const maxY = window.innerHeight - editor.offsetHeight;
+
+				newX = Math.max(0, Math.min(newX, maxX));
+				newY = Math.max(0, Math.min(newY, maxY));
+
+				editor.style.transition = 'none';
+				editor.style.left = newX + 'px';
+				editor.style.top = newY + 'px';
 			};
 
-			const dragEnd = () => { isDragging = false; };
+			const dragEnd = () => { 
+				clearTimeout(longPressTimer);
+				if (isDragging) {
+					isDragging = false;
+					wasDragging = true;
+					editor.style.transform = 'scale(1)';
+					editor.style.transition = 'transform 0.2s';
+					setTimeout(() => { wasDragging = false; }, 100);
+				}
+			};
 
-			handle.addEventListener('touchstart', dragStart, {passive: false});
+			editor.addEventListener('touchstart', dragStart, {passive: false});
 			document.addEventListener('touchmove', dragMove, {passive: false});
 			document.addEventListener('touchend', dragEnd);
-			handle.addEventListener('mousedown', dragStart);
+			editor.addEventListener('mousedown', dragStart);
 			document.addEventListener('mousemove', dragMove);
 			document.addEventListener('mouseup', dragEnd);
+			
+			editor.addEventListener('click', (e) => {
+				if (wasDragging) {
+					e.preventDefault();
+					e.stopPropagation();
+				}
+			}, { capture: true });
 
 			const syncToApp = () => {
 				try {
@@ -300,75 +344,96 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 				} catch(e){}
 			};
 
-			document.getElementById('cyber_coord_update').onclick = () => {
-				const newLat = parseFloat(document.getElementById('cyber_lat_input').value);
-				const newLng = parseFloat(document.getElementById('cyber_lng_input').value);
-				if(!isNaN(newLat) && !isNaN(newLng)) {
-					F_LAT = newLat;
-					F_LNG = newLng;
+			const updateBtn = document.getElementById('cyber_coord_update');
+			if (updateBtn) {
+				updateBtn.onclick = () => {
+					const newLat = parseFloat(document.getElementById('cyber_lat_input').value);
+					const newLng = parseFloat(document.getElementById('cyber_lng_input').value);
+					if(!isNaN(newLat) && !isNaN(newLng)) {
+						F_LAT = newLat;
+						F_LNG = newLng;
+						window.__CYBER_BOX_SHOWN = false; 
+						
+						updateBtn.innerText = '生效';
+						updateBtn.style.background = 'var(--cyber-success)';
+						setTimeout(() => {
+							updateBtn.innerText = '应用';
+							updateBtn.style.background = 'var(--cyber-info)';
+						}, 2000);
+						syncToApp();
+					}
+				};
+			}
+
+			const resetBtn = document.getElementById('cyber_coord_reset');
+			if (resetBtn) {
+				resetBtn.onclick = () => {
+					document.getElementById('cyber_lat_input').value = D_LAT;
+					document.getElementById('cyber_lng_input').value = D_LNG;
+					F_LAT = D_LAT;
+					F_LNG = D_LNG;
 					window.__CYBER_BOX_SHOWN = false; 
 					
-					const btn = document.getElementById('cyber_coord_update');
-					btn.innerText = '生效！';
-					btn.style.background = 'var(--cyber-success)';
+					resetBtn.innerText = '已回退';
+					resetBtn.style.background = 'rgba(74,222,128,0.2)';
+					resetBtn.style.color = 'var(--cyber-success)';
 					setTimeout(() => {
-						btn.innerText = '覆盖更新';
-						btn.style.background = 'var(--cyber-info)';
+						resetBtn.innerText = '回退';
+						resetBtn.style.background = 'rgba(255,255,255,0.1)';
+						resetBtn.style.color = '#fff';
 					}, 2000);
 					syncToApp();
-				}
-			};
-
-			document.getElementById('cyber_coord_reset').onclick = () => {
-				document.getElementById('cyber_lat_input').value = D_LAT;
-				document.getElementById('cyber_lng_input').value = D_LNG;
-				F_LAT = D_LAT;
-				F_LNG = D_LNG;
-				window.__CYBER_BOX_SHOWN = false; 
-				
-				const resetBtn = document.getElementById('cyber_coord_reset');
-				resetBtn.innerText = '已回校';
-				resetBtn.style.background = 'rgba(74,222,128,0.2)';
-				resetBtn.style.color = 'var(--cyber-success)';
-				setTimeout(() => {
-					resetBtn.innerText = '回校';
-					resetBtn.style.background = 'rgba(255,255,255,0.1)';
-					resetBtn.style.color = '#fff';
-				}, 2000);
-				syncToApp();
-			};
+				};
+			}
 		};
-		mountCoordEditor();
-		document.addEventListener('DOMContentLoaded', mountCoordEditor);
+
+		const uiWatchdog = () => {
+			try {
+				ensureStyles();
+				ensureHUD();
+				ensureEditor();
+			} catch (e) {}
+		};
+		uiWatchdog();
+		setInterval(uiWatchdog, 1500);
 
 		window.showConfirmBox = function() {
 			if (document.getElementById('cyber_confirm')) return;
 			const box = document.createElement('div');
 			box.id = 'cyber_confirm';
 			box.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:var(--cyber-bg-modal);border:1px solid var(--cyber-primary);color:#fff;padding:24px;border-radius:24px;z-index:2147483647;backdrop-filter:blur(20px);box-shadow:0 0 40px rgba(204,151,255,0.3);text-align:center;width:80%;max-width:320px;font-family:sans-serif;animation: cyber-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);';
-			box.innerHTML = '<div style="font-size:18px;font-weight:900;margin-bottom:12px;color:var(--cyber-primary);text-shadow:0 0 10px rgba(204,151,255,0.8);">🎯 协议伪装完成</div><div style="font-size:13px;color:#a1a1aa;margin-bottom:24px;line-height:1.6;">已将定位锁定至目标区域，是否立即向服务器发送打卡指令？</div><div style="display:flex;gap:12px;"><button id="btn_cancel_ck" style="flex:1;padding:12px;border:none;border-radius:12px;background:rgba(255,255,255,0.05);color:#a1a1aa;font-weight:bold;">取消</button><button id="btn_confirm_ck" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--cyber-primary);color:#050505;font-weight:900;box-shadow:0 0 15px rgba(204,151,255,0.4);">授权签到</button></div>';
-			(document.body || document.documentElement).appendChild(box);
+			box.innerHTML = '<div style="font-size:18px;font-weight:900;margin-bottom:12px;color:var(--cyber-primary);text-shadow:0 0 10px rgba(204,151,255,0.8);">操作确认</div><div style="font-size:13px;color:#a1a1aa;margin-bottom:24px;line-height:1.6;">已锁定至目标区域，是否执行业务请求？</div><div style="display:flex;gap:12px;"><button id="btn_cancel_ck" style="flex:1;padding:12px;border:none;border-radius:12px;background:rgba(255,255,255,0.05);color:#a1a1aa;font-weight:bold;">取消</button><button id="btn_confirm_ck" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--cyber-primary);color:#050505;font-weight:900;box-shadow:0 0 15px rgba(204,151,255,0.4);">确认执行</button></div>';
+			
+			const root = document.body || document.documentElement;
+			if (root) root.appendChild(box);
 
-			document.getElementById('btn_cancel_ck').onclick = () => { box.remove(); };
-			document.getElementById('btn_confirm_ck').onclick = () => {
-				box.innerHTML = '<div style="font-size:15px;color:var(--cyber-primary);font-weight:bold;padding:10px 0;">🚀 正在发送指令...</div>';
+			const cancelBtn = document.getElementById('btn_cancel_ck');
+			if (cancelBtn) cancelBtn.onclick = () => { box.remove(); };
+			
+			const confirmBtn = document.getElementById('btn_confirm_ck');
+			if (confirmBtn) confirmBtn.onclick = () => {
+				box.innerHTML = '<div style="font-size:15px;color:var(--cyber-primary);font-weight:bold;padding:10px 0;">执行中...</div>';
 				setTimeout(() => {
 					box.remove();
+					if (!document.body) return;
 					let targetBtn = null;
-					const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-					let node;
-					while (node = walker.nextNode()) {
-						const text = node.nodeValue.trim();
-						if (text === '签到' || text === '打卡' || text === '立即签到') {
-							targetBtn = node.parentElement.closest('button, [role="button"], .adm-button, .van-button, .weui-btn') || node.parentElement;
-							break;
+					try {
+						const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+						let node;
+						while (node = walker.nextNode()) {
+							const text = node.nodeValue.trim();
+							if (text === '签到' || text === '打卡' || text === '立即签到') {
+								targetBtn = node.parentElement.closest('button, [role="button"], .adm-button, .van-button, .weui-btn') || node.parentElement;
+								break;
+							}
 						}
-					}
+					} catch(e) {}
+					
 					if (targetBtn) {
 						window.__AUTO_CLICKED__ = true;
 						targetBtn.click();
 					} else {
-						alert("未检测到有效签到按钮，请手动点击屏幕下方按钮！");
+						alert("未能检索到触发节点，请手动操作页面。");
 					}
 				}, 300);
 			};
@@ -376,62 +441,64 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 
 		window.__CYBER_BOX_SHOWN = false;
 		setInterval(() => {
-			if (window.__CYBER_BOX_SHOWN || window.__AUTO_CLICKED__) return;
+			try {
+				if (window.__CYBER_BOX_SHOWN || window.__AUTO_CLICKED__) return;
+				if (!document.body) return;
 
-			let btnFound = null;
-			const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-			let node;
-			while (node = walker.nextNode()) {
-				const text = node.nodeValue.trim();
-				if (text === '签到' || text === '打卡' || text === '立即签到' || text === '立即打卡') {
-					btnFound = node.parentElement;
-					break;
-				}
-			}
-
-			if (btnFound) {
-				const btnWrapper = btnFound.closest('button, [role="button"], .adm-button, .van-button, .weui-btn') || btnFound;
-				const isBtnDisabled = btnWrapper.disabled || 
-									  btnWrapper.classList.contains('adm-button-disabled') || 
-									  btnWrapper.classList.contains('van-button--disabled') ||
-									  btnWrapper.className.includes('disabled') ||
-									  btnWrapper.getAttribute('aria-disabled') === 'true';
-				
-				const pageText = document.body.innerText || "";
-				const inSafeZone = pageText.includes('可以进行签到') || pageText.includes('已在指定区域内');
-				const isVisible = btnWrapper.offsetWidth > 0 && btnWrapper.offsetHeight > 0;
-
-				if (isVisible && (!isBtnDisabled || inSafeZone)) {
-					window.__CYBER_BOX_SHOWN = true;
-					if(typeof window.showConfirmBox === 'function') {
-						window.showConfirmBox();
+				let btnFound = null;
+				const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+				let node;
+				while (node = walker.nextNode()) {
+					const text = node.nodeValue.trim();
+					if (text === '签到' || text === '打卡' || text === '立即签到' || text === '立即打卡') {
+						btnFound = node.parentElement;
+						break;
 					}
 				}
-			}
+
+				if (btnFound) {
+					const btnWrapper = btnFound.closest('button, [role="button"], .adm-button, .van-button, .weui-btn') || btnFound;
+					const isBtnDisabled = btnWrapper.disabled || 
+										  btnWrapper.classList.contains('adm-button-disabled') || 
+										  btnWrapper.classList.contains('van-button--disabled') ||
+										  btnWrapper.className.includes('disabled') ||
+										  btnWrapper.getAttribute('aria-disabled') === 'true';
+					
+					const pageText = document.body.innerText || "";
+					const inSafeZone = pageText.includes('可以进行签到') || pageText.includes('已在指定区域内');
+					const isVisible = btnWrapper.offsetWidth > 0 && btnWrapper.offsetHeight > 0;
+
+					if (isVisible && (!isBtnDisabled || inSafeZone)) {
+						window.__CYBER_BOX_SHOWN = true;
+						if(typeof window.showConfirmBox === 'function') {
+							window.showConfirmBox();
+						}
+					}
+				}
+			} catch(e) {}
 		}, 500);
 
-		// 🚀 新增：通知宿主环境并带上完整 msg（防止包含引号导致 evalJS 崩溃）
 		const showToast = (isSuccess, msg) => {
 			const color = isSuccess ? 'var(--cyber-success)' : 'var(--cyber-danger)';
-			const title = isSuccess ? '🎉 打卡结果' : '❌ 打卡结果';
+			const title = isSuccess ? '请求成功' : '请求失败';
 			const toast = document.createElement('div');
 			toast.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--cyber-bg-modal);border:1px solid '+color+';color:'+color+';padding:14px 24px;border-radius:30px;font-size:15px;font-weight:900;z-index:2147483647;backdrop-filter:blur(20px);box-shadow:0 0 30px '+color+'50;display:flex;align-items:center;gap:10px;animation: cyber-slide-down 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);white-space:nowrap;';
 			toast.innerHTML = title + '<span style="font-size:12px;opacity:0.8;font-weight:normal;max-width:180px;overflow:hidden;text-overflow:ellipsis;">' + msg + '</span>';
-			(document.body || document.documentElement).appendChild(toast);
+			
+			const root = document.body || document.documentElement;
+			if (root) root.appendChild(toast);
 
 			try {
 				if(window.plus) {
 					const wv = plus.webview.currentWebview();
 					const parent = wv.parent() || wv.opener();
-					// 安全过滤：剔除所有可能引起代码断裂的字符
 					const safeMsg = (msg || '').toString().replace(/['"\\\\\\n\\r]/g, '');
 					if(parent) parent.evalJS("if(window.__handleCheckinResult) window.__handleCheckinResult("+isSuccess+", '"+safeMsg+"')");
 				}
 			} catch(e){}
-			setTimeout(() => toast.remove(), 4000);
+			setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4000);
 		};
 
-		// 🚀 核心升级：重写 open 和 send，截获网络请求并严格判定业务失败
 		const origOpen = XMLHttpRequest.prototype.open;
 		XMLHttpRequest.prototype.open = function(method, url) {
 			this._method = method;
@@ -445,27 +512,20 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 				if (window.__AUTO_CLICKED__) {
 					try {
 						const res = JSON.parse(this.responseText);
-						
 						let msg = res.message || res.msg || res.error || '';
 						
-						// 如果是 GET 请求且没有任何 message 提示（大概率是地图刷新的心跳包），直接忽略！
-						if (!msg && (this._method || '').toUpperCase() === 'GET') {
-							return; 
-						}
+						if (!msg && (this._method || '').toUpperCase() === 'GET') return; 
 
-						// 终极状态判断
 						let isSuccess = false;
 						if (msg.includes('成功')) {
 							isSuccess = true;
 						} else if (msg.includes('失败') || msg.includes('不在') || msg.includes('未到') || msg.includes('不允许') || msg.includes('异常') || msg.includes('无法') || msg.includes('距离太远')) {
-							// 只要有失败的负面词汇，哪怕 HTTP Code 是 200，也判定为失败！
 							isSuccess = false;
 						} else {
-							// 兜底逻辑：依靠常见的状态码
 							isSuccess = (res.code === 200 || res.code === 0 || res.success === true);
 						}
 
-						if (!msg) msg = isSuccess ? '请求已完成' : '请求失败，请检查状态';
+						if (!msg) msg = isSuccess ? '已完成' : '状态非预期';
 
 						const hud = document.getElementById('cyber_hud');
 						if(hud) hud.style.display = 'none';

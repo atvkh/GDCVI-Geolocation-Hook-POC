@@ -17,6 +17,16 @@
 					<button class="btn-return-school" @click="backToSchool">一键回校 (默认安全区)</button>
 					<button class="btn-save-action setting-save" @click="saveSettings">更新位置协议</button>
 				</view>
+
+				<view class="matrix-divider"></view>
+				<view class="setting-item" style="margin-bottom: 0;">
+					<text class="field-label" style="text-align: center; margin-bottom: 12px;">开源与支持</text>
+					<view class="github-btn" @click="openGithub">
+						<text class="material-symbols-outlined" style="font-size: 20px; color: var(--color-text-main);">code</text>
+						<text class="github-text">GitHub: GDCVI-Geolocation-Hook-POC</text>
+					</view>
+				</view>
+
 			</view>
 		</view>
 	</view>
@@ -38,6 +48,16 @@ export default {
 		},
 		saveSettings() {
 			this.$emit('save', Number(this.localLat), Number(this.localLng));
+		},
+		// 🚀 响应点击，系统底层打开浏览器跳转仓库
+		openGithub() {
+			const url = 'https://github.com/atvkh/GDCVI-Geolocation-Hook-POC';
+			// #ifdef APP-PLUS
+			plus.runtime.openURL(url);
+			// #endif
+			// #ifndef APP-PLUS
+			window.open(url);
+			// #endif
 		}
 	}
 }
@@ -63,4 +83,10 @@ export default {
 .btn-save-action { font-weight: 800; border-radius: 12px; height: 50px; border: none; transition: all 0.3s; width: 100%; }
 .setting-save { background: var(--color-info); color: #050505; box-shadow: 0 5px 15px rgba(56,189,248,0.3); }
 .setting-save:active { background: #0ea5e9; transform: scale(0.96); }
+
+/* 🚀 Github 入口专属样式 */
+.matrix-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 25px 0; }
+.github-btn { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s; }
+.github-btn:active { background: rgba(255,255,255,0.08); transform: scale(0.98); border-color: rgba(255,255,255,0.15); }
+.github-text { color: var(--color-text-muted); font-size: 12px; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>

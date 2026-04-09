@@ -6,17 +6,30 @@
 				<text class="text-gradient-white">V{{ appVersion }}</text>
 				<view class="status-dot" :class="{'is-hooked': hookStatus === 'active'}"></view>
 			</view>
-			<text class="protocol-text">系统协议已激活</text>
+			<text class="protocol-text">系统环境已加载</text>
 		</view>
 
 		<view class="main-content" v-if="!showWeb">
-			<TabHome v-show="tabIndex === 0" ref="tabHome"
-				:isGenerating="isGenerating" :loadingText="loadingText"
-				:mouseX="mouseX" :mouseY="mouseY" 
-				@start-checkin="handleStartCheckIn" @reset-app="handleResetApp" />
+			<transition name="fade-up">
+				<view v-show="tabIndex === 0" style="width: 100%;">
+					<TabHome ref="tabHome"
+						:isGenerating="isGenerating" :loadingText="loadingText"
+						:mouseX="mouseX" :mouseY="mouseY" 
+						@start-checkin="handleStartCheckIn" @reset-app="handleResetApp" />
+				</view>
+			</transition>
 				
-			<TabHistory v-show="tabIndex === 1" :historyList="historyList" />
-			<TabSettings v-show="tabIndex === 2" :fakeLat="fakeLat" :fakeLng="fakeLng" @save="handleSaveSettings" />
+			<transition name="fade-up">
+				<view v-show="tabIndex === 1" style="width: 100%;">
+					<TabHistory :historyList="historyList" />
+				</view>
+			</transition>
+
+			<transition name="fade-up">
+				<view v-show="tabIndex === 2" style="width: 100%;">
+					<TabSettings :fakeLat="fakeLat" :fakeLng="fakeLng" @save="handleSaveSettings" />
+				</view>
+			</transition>
 		</view>
 
 		<view class="bottom-navbar" v-if="!showWeb">
@@ -38,16 +51,14 @@
 			<view class="tutorial-card update-card" @click.stop="">
 				<view class="update-header">
 					<text class="material-symbols-outlined update-icon">system_update_alt</text>
-					<text class="tutorial-title" style="margin-bottom: 0;">发现新协议 V{{ updateInfo.version }}</text>
+					<text class="tutorial-title" style="margin-bottom: 0;">版本更新提示 V{{ updateInfo.version }}</text>
 				</view>
-				
 				<scroll-view scroll-y="true" class="update-scroll">
 					<text class="update-log-text">{{ updateInfo.log }}</text>
 				</scroll-view>
-				
 				<view class="update-actions">
-					<button v-if="!updateInfo.forceUpdate" class="btn-cancel-update" @click="showUpdateModal = false">暂不升级</button>
-					<button class="btn-confirm-update" @click="goToDownload">获取最新协议</button>
+					<button v-if="!updateInfo.forceUpdate" class="btn-cancel-update" @click="showUpdateModal = false">稍后更新</button>
+					<button class="btn-confirm-update" @click="goToDownload">立即下载</button>
 				</view>
 			</view>
 		</view>
@@ -78,20 +89,20 @@ export default {
 			fakeLng: uni.getStorageSync('fakeLng') || DEFAULT_LNG,
 			historyList: uni.getStorageSync('historyList') || [],
 			buttonSelector: '.adm-button-primary',
-			
 			showUpdateModal: false,
-			updateInfo: { version: '', log: '', url: '', forceUpdate: false }
+			updateInfo: { version: '', log: '', url: '', forceUpdate: false },
+			persistentInjectTimer: null
 		}
 	},
 	onBackPress() {
 		if (this.showWeb) { this.handleResetApp(); return true; }
 		if (this.$refs.tabHome && this.$refs.tabHome.displayTutorial) { this.$refs.tabHome.displayTutorial = false; return true; }
+		if (this.$refs.tabHome && this.$refs.tabHome.showMatrix) { this.$refs.tabHome.closeMatrix(); return true; }
 		if (this.showUpdateModal && !this.updateInfo.forceUpdate) { this.showUpdateModal = false; return true; }
 		return false; 
 	},
 	created() {
 		// #ifdef APP-PLUS
-		// 🚀 核心升级：接收后端透传过来的真实消息，记录精确到秒
 		window.__handleCheckinResult = (isSuccess, msg) => {
 			const now = new Date();
 			const hh = now.getHours().toString().padStart(2, '0');
@@ -100,11 +111,8 @@ export default {
 			const timeStr = `${hh}:${mm}:${ss}`;
 			
 			this.historyList.unshift({ 
-				time: timeStr, 
-				lat: this.fakeLat, 
-				lng: this.fakeLng, 
-				status: isSuccess ? '成功' : '失败',
-				reason: msg || (isSuccess ? '' : '未知失败原因') // 记录真实原因
+				time: timeStr, lat: this.fakeLat, lng: this.fakeLng, 
+				status: isSuccess ? '成功' : '失败', reason: msg || '' 
 			});
 			uni.setStorageSync('historyList', this.historyList.slice(0, MAX_HISTORY_RECORDS));
 		};
@@ -122,7 +130,6 @@ export default {
 	methods: {
 		checkAppUpdate() {
 			if (!UPDATE_JSON_URL) return;
-			
 			uni.request({
 				url: UPDATE_JSON_URL + '?t=' + new Date().getTime(),
 				method: 'GET',
@@ -131,17 +138,14 @@ export default {
 						const remoteData = res.data;
 						if (remoteData.versionCode && remoteData.versionCode > APP_VERSION_CODE) {
 							this.updateInfo = {
-								version: remoteData.version || '最新版',
-								log: remoteData.log || '修复了已知问题，提升了稳定性。',
+								version: remoteData.version || '',
+								log: remoteData.log || '',
 								url: remoteData.url || '',
 								forceUpdate: remoteData.forceUpdate || false
 							};
 							this.showUpdateModal = true;
 						}
 					}
-				},
-				fail: () => {
-					console.log('检查更新失败');
 				}
 			});
 		},
@@ -152,14 +156,10 @@ export default {
 			// #ifdef APP-PLUS
 			plus.runtime.openURL(this.updateInfo.url);
 			// #endif
-			// #ifndef APP-PLUS
-			window.open(this.updateInfo.url);
-			// #endif
 			if (!this.updateInfo.forceUpdate) {
 				this.showUpdateModal = false;
 			}
 		},
-
 		trackMouse(e) {
 			const x = e.touches ? e.touches[0].clientX : e.clientX;
 			const y = e.touches ? e.touches[0].clientY : e.clientY;
@@ -168,17 +168,23 @@ export default {
 		handleSaveSettings(lat, lng) {
 			this.fakeLat = lat; this.fakeLng = lng;
 			uni.setStorageSync('fakeLat', this.fakeLat); uni.setStorageSync('fakeLng', this.fakeLng);
-			uni.showToast({ title: '坐标协议已更新', icon: 'success' }); this.tabIndex = 0;
+			uni.showToast({ title: '配置已更新', icon: 'success' }); this.tabIndex = 0;
 		},
 		handleResetApp() {
 			this.isGenerating = false; this.hookStatus = 'inactive'; this.showWeb = false; 
 			this.fakeLat = DEFAULT_LAT; this.fakeLng = DEFAULT_LNG;
+			
+			if (this.persistentInjectTimer) {
+				clearInterval(this.persistentInjectTimer);
+				this.persistentInjectTimer = null;
+			}
+
 			uni.setStorageSync('fakeLat', this.fakeLat); uni.setStorageSync('fakeLng', this.fakeLng);
 			uni.showToast({ title: '环境与坐标已重置', icon: 'none' }); 
 		},
 		handleStartCheckIn(url) {
 			this.isGenerating = true;
-			this.loadingText = '正在接管地理围栏...';
+			this.loadingText = '正在构建分析容器...';
 			setTimeout(() => {
 				this.currentUrl = url; this.showWeb = true; 
 				this.$nextTick(() => { this.startAggressiveInjection(); });
@@ -187,22 +193,35 @@ export default {
 		startAggressiveInjection() {
 			// #ifdef APP-PLUS
 			const coreScript = generateCoreScript(this.fakeLat, this.fakeLng, this.buttonSelector, DEFAULT_LAT, DEFAULT_LNG);
+			
+			if (this.persistentInjectTimer) {
+				clearInterval(this.persistentInjectTimer);
+			}
+
 			let injectAttempts = 0;
-			const tryInject = () => {
+			const tryInjectBurst = () => {
 				if (!this.showWeb) return;
 				const webviews = this.$scope.$getAppWebview().children();
 				if (webviews && webviews.length > 0) webviews[0].evalJS(coreScript);
-				if (injectAttempts++ < INJECT_MAX_ATTEMPTS) setTimeout(tryInject, INJECT_INTERVAL_MS);
+				if (injectAttempts++ < INJECT_MAX_ATTEMPTS) setTimeout(tryInjectBurst, INJECT_INTERVAL_MS);
 			};
-			this.$nextTick(() => { tryInject(); });
+			this.$nextTick(() => { tryInjectBurst(); });
 
-			setTimeout(() => { this.loadingText = '注入高斯随机抖动...'; }, 800);
-			setTimeout(() => { this.loadingText = '伪造底层环境特征...'; }, 1600);
+			this.persistentInjectTimer = setInterval(() => {
+				if (!this.showWeb) {
+					clearInterval(this.persistentInjectTimer);
+					return;
+				}
+				const webviews = this.$scope.$getAppWebview().children();
+				if (webviews && webviews.length > 0) webviews[0].evalJS(coreScript);
+			}, 1000);
+
+			setTimeout(() => { this.loadingText = '注入干扰算法...'; }, 800);
+			setTimeout(() => { this.loadingText = '代理核心接口...'; }, 1600);
 			setTimeout(() => { 
-				this.loadingText = '协议就绪，持续侦测签到系统...'; 
+				this.loadingText = '监听系统状态...'; 
 				this.hookStatus = 'active'; 
 			}, 2400);
-
 			// #endif
 		}
 	}
@@ -211,6 +230,22 @@ export default {
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+/* 解决 Material Symbols 字体网络加载导致 FOUT 的布局错乱问题 */
+.material-symbols-outlined {
+	font-family: 'Material Symbols Outlined', sans-serif;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	max-width: 1em;
+	max-height: 1em;
+	overflow: hidden;
+	white-space: nowrap;
+	word-wrap: normal;
+	direction: ltr;
+	font-feature-settings: 'liga';
+	-webkit-font-smoothing: antialiased;
+}
 
 page {
 	--color-primary: #cc97ff;
@@ -239,9 +274,16 @@ page {
 .status-dot.is-hooked { background: var(--color-success); box-shadow: 0 0 15px var(--color-success); }
 .protocol-text { font-size: 10px; text-transform: uppercase; letter-spacing: 4px; color: #777575; font-weight: bold; margin-top: 4px; display: block; text-align: center; }
 
-.main-content { width: 100%; display: flex; flex-direction: column; align-items: center; }
-.tab-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; animation: fade-in 0.3s ease; }
-@keyframes fade-in { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+.main-content {
+	width: 100%; display: flex; flex-direction: column; align-items: center;
+	position: relative;
+}
+
+.fade-up-enter-active { transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.fade-up-leave-active { display: none; }
+.fade-up-enter-from, .fade-up-enter { opacity: 0; transform: translateY(15px); }
+
+.tab-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; }
 
 .glass-card { width: 85%; backdrop-filter: blur(28px); border: 1px solid var(--color-border); border-radius: 32px; padding: 32px; position: relative; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05); }
 .card-glow-bg { position: absolute; width: 180px; height: 180px; filter: blur(80px); pointer-events: none; border-radius: 50%; }
@@ -266,9 +308,10 @@ page {
 .nav-btn.active .material-symbols-outlined { color: #050505; transform: translateY(-16px); }
 
 .tutorial-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(25px); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-.update-card { border-top: 3px solid var(--color-info); box-shadow: 0 0 60px rgba(56,189,248,0.15); animation: update-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.update-card { border-top: 3px solid var(--color-info); box-shadow: 0 0 60px rgba(56,189,248,0.15); animation: sheet-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); background: var(--color-bg-dark); border-radius: 32px; padding: 32px; width: 85%; }
 .update-header { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; margin-bottom: 24px; }
 .update-icon { font-size: 48px; color: var(--color-info); text-shadow: 0 0 20px rgba(56,189,248,0.6); }
+.tutorial-title { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 30px; text-align: center; display: block; }
 .update-scroll { max-height: 250px; background: rgba(255,255,255,0.02); border-radius: 12px; padding: 16px; border: 1px solid var(--color-border); margin-bottom: 24px; }
 .update-log-text { font-size: 13px; color: var(--color-text-muted); line-height: 1.8; white-space: pre-wrap; font-family: monospace; }
 .update-actions { display: flex; gap: 12px; }
@@ -277,7 +320,7 @@ page {
 .btn-confirm-update { flex: 2; background: var(--color-info); color: #000; border: none; border-radius: 14px; font-size: 14px; font-weight: 900; height: 50px; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 15px rgba(56,189,248,0.3); transition: all 0.2s; }
 .btn-confirm-update:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(56,189,248,0.2); }
 
-@keyframes update-pop { 0% { opacity: 0; transform: scale(0.8) translateY(20px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes sheet-up { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .spinning { animation: spin 2s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
