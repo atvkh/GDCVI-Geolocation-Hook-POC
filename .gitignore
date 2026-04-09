@@ -1,0 +1,6 @@
+node_modules/
+unpackage/
+.hbuilderx/
+*.keystore
+*.apk
+.DS_Store
