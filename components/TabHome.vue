@@ -3,9 +3,36 @@
 		<view class="glass-card card-home">
 			<view class="card-glow-bg glow-home"></view>
 			<view class="card-inner">
+
+				<view class="security-probe-panel">
+					<view class="probe-data-stream"></view>
+					<view class="probe-scanline"></view>
+					<view class="probe-content">
+						<view class="probe-header">
+							<text class="material-symbols-outlined probe-icon">shield</text>
+							<text class="probe-title">环境安全探针</text>
+							<view class="probe-status safe">
+								<view class="status-dot"></view>
+								<text>加密通道就绪</text>
+							</view>
+						</view>
+						<view class="probe-metrics">
+							<view class="metric-item">
+								<text class="metric-label">设备指纹</text>
+								<text class="metric-value">动态掩码 <text class="active-text">ON</text></text>
+							</view>
+							<view class="metric-divider"></view>
+							<view class="metric-item">
+								<text class="metric-label">坐标扰动</text>
+								<text class="metric-value">±3m 漂移 <text class="active-text">ON</text></text>
+							</view>
+						</view>
+					</view>
+				</view>
+
 				<view class="input-section">
 					<view class="section-header">
-						<text class="label-text home-label">网络反馈</text>
+						<text class="section-label">网络反馈</text>
 						<view class="matrix-toggle" @click="showMatrix = true">
 							<text class="material-symbols-outlined icon-small">view_list</text>
 							<text>矩阵库</text>
@@ -17,7 +44,7 @@
 							<text class="material-symbols-outlined">expand_more</text>
 						</view>
 						
-						<input class="custom-input" :value="displayInput" @input="onManualInput" placeholder="等待数据注入..." disabled maxlength="-1" />
+						<input class="custom-input" :value="displayInput" @input="onManualInput" placeholder="等待数据注入..." maxlength="-1" />
 						<text v-if="selectedName" class="material-symbols-outlined clear-icon" @click="clearSelection">close</text>
 
 						<scroll-view class="dropdown-list" v-if="showDropdown" scroll-y="true">
@@ -30,110 +57,76 @@
 				</view>
 				
 				<view class="button-group">
-					<button class="btn-primary" @click="startCheckIn" :disabled="isGenerating" :class="{'is-generating': isGenerating}">
-						<view class="cursor-glow" :style="{left: mouseX + 'px', top: mouseY + 'px'}"></view>
-						<view class="btn-content" v-if="!isGenerating">
-							<text>极速打卡</text>
-							<text class="material-symbols-outlined icon-move">arrow_forward</text>
-						</view>
-						<view class="btn-content" v-else>
+					<button class="btn-cyber" @click="startCheckIn" :class="{'is-generating': isGenerating}">
+						<span class="btn-cyber-text" v-if="!isGenerating">极速打卡 -></span>
+						<span class="btn-cyber-loading" v-else>
 							<text class="material-symbols-outlined spinning">radar</text>
 							<text class="loading-text">{{ loadingText }}</text>
-						</view>
+						</span>
 					</button>
 					
-					<button class="btn-extract home-extract" @click="readClipboard" :disabled="isGenerating">
+					<view class="btn-extract" @click="readClipboard">
 						<text>提取链接</text>
 						<text class="material-symbols-outlined">north_east</text>
-						<view class="underline-grow"></view>
-					</button>
+					</view>
 
-					<view class="home-tut-trigger home-tut" @click="displayTutorial = true">
-						<text class="material-symbols-outlined">help_center</text>
-						<text>如何利用“断网”获取纯净 URL？</text>
+					<view class="tut-banner" @click="$emit('open-tutorial')">
+						<view class="tut-banner-icon">
+							<text class="material-symbols-outlined">tips_and_updates</text>
+						</view>
+						<view class="tut-banner-text">
+							<text class="tut-title-sm">提取纯净链接教程</text>
+							<text class="tut-sub-sm">跳查寝打卡必看流程</text>
+						</view>
+						<text class="material-symbols-outlined tut-arrow">chevron_right</text>
 					</view>
 				</view>
+
 			</view>
 		</view>
 
-		<view class="emergency-container">
-			<button class="btn-emergency" @click="resetApp">
-				<text class="reset-text">紧急重置环境</text>
-				<view class="reset-top-line"></view>
-			</button>
-		</view>
-
-		<view class="tutorial-overlay matrix-overlay" v-if="showMatrix" @click="closeMatrix">
-			<view class="tutorial-card matrix-card" @click.stop="">
-				<view class="matrix-header">
-					<text class="material-symbols-outlined matrix-icon">groups</text>
-					<text class="matrix-title">矩阵库维护</text>
+		<view class="matrix-drawer-overlay" v-if="showMatrix" @tap="closeMatrix">
+			<view class="matrix-drawer" @tap.stop @touchstart="onDrawerTouchStart" @touchend="onDrawerTouchEnd">
+				<view class="matrix-drawer-header">
+					<view class="matrix-drawer-title">
+						<text class="material-symbols-outlined">groups</text>
+						<text>矩阵库维护</text>
+					</view>
+					<view class="matrix-drawer-close" @click="closeMatrix">
+						<text class="material-symbols-outlined">close</text>
+					</view>
 				</view>
+				<view class="matrix-drawer-line"></view>
 
-				<view class="matrix-section">
-					<text class="matrix-section-title">参数更新与删除</text>
-					
-					<view class="input-wrapper neon-input" style="margin-bottom: 10px;" @click="showManageDropdown = !showManageDropdown">
-						<input class="custom-input" :value="manageSelectedUser ? manageSelectedUser.name : ''" placeholder="点击选择预设人员..." disabled maxlength="-1" />
-						<view class="dropdown-trigger" style="border: none; padding-right: 0;">
+				<scroll-view class="matrix-drawer-body" scroll-y>
+					<view class="matrix-drawer-section">
+						<text class="matrix-drawer-label">参数更新与删除</text>
+						<view class="matrix-select" @click="showManageDropdown = !showManageDropdown">
+							<text class="matrix-select-text">{{ manageSelectedUser ? manageSelectedUser.name : '点击选择预设人员...' }}</text>
 							<text class="material-symbols-outlined">arrow_drop_down</text>
-						</view>
-						
-						<view class="dropdown-menu" v-if="showManageDropdown">
-							<view class="dropdown-item" v-for="(user, index) in userList" :key="index" @click.stop="selectManageUser(user, index)">
-								{{ user.name }}
+							<view class="matrix-dropdown" v-if="showManageDropdown">
+								<view class="matrix-dropdown-item" v-for="(user, index) in userList" :key="index" @click.stop="selectManageUser(user, index)">
+									{{ user.name }}
+								</view>
+								<view class="matrix-dropdown-empty" v-if="userList.length === 0">暂无数据</view>
 							</view>
-							<view class="dropdown-item empty" v-if="userList.length === 0">暂无数据</view>
+						</view>
+						<view v-if="manageSelectedUser" class="matrix-manage-area">
+							<input class="matrix-input" v-model="manageNewUrl" placeholder="在此粘贴该人员的最新链接" maxlength="-1" />
+							<view class="matrix-manage-btns">
+								<view class="matrix-btn-update" @click="updateSelectedUser"><text>更新链接</text></view>
+								<view class="matrix-btn-delete" @click="deleteSelectedUser"><text class="material-symbols-outlined">delete</text></view>
+							</view>
 						</view>
 					</view>
 
-					<view v-if="manageSelectedUser" class="manage-action-area">
-						<input class="custom-input matrix-input" v-model="manageNewUrl" placeholder="在此粘贴该人员的最新链接" maxlength="-1" />
-						<view class="action-row">
-							<button class="btn-matrix-update" @click="updateSelectedUser">更新链接</button>
-							<button class="btn-matrix-delete" @click="deleteSelectedUser"><text class="material-symbols-outlined">delete</text></button>
-						</view>
-					</view>
-				</view>
-
-				<view class="matrix-divider"></view>
-
-				<view class="matrix-section">
-					<text class="matrix-section-title">新增人员录入</text>
-					<input class="custom-input matrix-input" v-model="newUserName" placeholder="人员名称 (如: 张三)" style="margin-bottom: 10px;" />
-					<input class="custom-input matrix-input" v-model="newUserUrl" placeholder="粘贴对应链接" style="margin-bottom: 10px;" maxlength="-1" />
-					<button class="btn-primary" style="height: 44px; border-radius: 8px; margin: 0; font-size: 14px;" @click="saveNewUser">提交录入</button>
-				</view>
-			</view>
-		</view>
-
-		<view class="tutorial-overlay" v-if="displayTutorial" @click="displayTutorial = false">
-			<view class="tutorial-card" @click.stop="">
-				<text class="tutorial-title">纯净 URL 提取指南</text>
-				<scroll-view scroll-y="true" class="tutorial-scroll">
-					<view class="tut-section highlighting">
-						<view class="tut-step-header">
-							<text class="tut-step-num">STEP 01</text>
-							<text class="tut-step-title">断网拦截 (核心操作)</text>
-						</view>
-						<text class="tut-step-desc">进入页面后，<text class="highlight-text">迅速下拉手机状态栏，关闭 Wi-Fi 和 数据流量</text>。这一步是为了在没有网络的情况下，截断真实的定位上传并保活当前页面的 code。</text>
-					</view>
-					<view class="tut-section">
-						<view class="tut-step-header">
-							<text class="tut-step-num">STEP 02</text>
-							<text class="tut-step-title">提取防伪造链接</text>
-						</view>
-						<text class="tut-step-desc">在断网状态下，点击微信右上角菜单，选择<text class="highlight-text">“复制链接”</text>。复制成功后，务必<text class="highlight-text">恢复手机网络</text>。</text>
-					</view>
-					<view class="tut-section">
-						<view class="tut-step-header">
-							<text class="tut-step-num">STEP 03</text>
-							<text class="tut-step-title">环境注入与打卡</text>
-						</view>
-						<text class="tut-step-desc">回到本 App 首页点击“提取链接”，配置好目标坐标后，点击“极速打卡”，系统会弹出确认框，确认后即可完成打卡。</text>
+					<view class="matrix-drawer-section">
+						<text class="matrix-drawer-label">新增人员录入</text>
+						<input class="matrix-input" v-model="newUserName" placeholder="人员名称 (如: 张三)" />
+						<input class="matrix-input" v-model="newUserUrl" placeholder="粘贴对应链接" maxlength="-1" />
+						<view class="matrix-btn-submit" @click="saveNewUser"><text>提交录入</text></view>
 					</view>
 				</scroll-view>
-				<button class="btn-close-tut" @click="displayTutorial = false">准备开始</button>
 			</view>
 		</view>
 	</view>
@@ -141,6 +134,7 @@
 
 <script>
 export default {
+	emits: ['start-checkin', 'open-tutorial'],
 	props: {
 		isGenerating: { type: Boolean, default: false },
 		loadingText: { type: String, default: '正在接管定位...' },
@@ -151,18 +145,16 @@ export default {
 		return { 
 			targetUrl: '', 
 			selectedName: '',
-			displayTutorial: false,
-			
 			showMatrix: false,
 			showDropdown: false,
 			userList: uni.getStorageSync('cyberUserMatrix') || [],
 			newUserName: '',
 			newUserUrl: '',
-			
 			showManageDropdown: false,
 			manageSelectedUser: null,
 			manageSelectedIndex: -1,
-			manageNewUrl: ''
+			manageNewUrl: '',
+			drawerTouchStartY: 0
 		} 
 	},
 	computed: {
@@ -174,6 +166,16 @@ export default {
 		closeMatrix() {
 			this.showMatrix = false;
 			this.showManageDropdown = false;
+		},
+		onDrawerTouchStart(e) {
+			this.drawerTouchStartY = e.touches[0].clientY;
+		},
+		onDrawerTouchEnd(e) {
+			const endY = e.changedTouches[0].clientY;
+			const diffY = endY - this.drawerTouchStartY;
+			if (diffY > 80) {
+				this.closeMatrix();
+			}
 		},
 		selectManageUser(user, index) {
 			this.manageSelectedUser = user;
@@ -190,7 +192,7 @@ export default {
 
 			this.userList[this.manageSelectedIndex].url = url;
 			uni.setStorageSync('cyberUserMatrix', this.userList);
-			uni.showToast({ title: '参数更新成功', icon: 'success' });
+			uni.showToast({ title: '参数更新成功', icon: 'none' });
 			this.manageNewUrl = '';
 			
 			if (this.selectedName === this.manageSelectedUser.name) {
@@ -226,7 +228,7 @@ export default {
 			uni.setStorageSync('cyberUserMatrix', this.userList);
 			this.newUserName = ''; 
 			this.newUserUrl = '';
-			uni.showToast({ title: '录入成功', icon: 'success' });
+			uni.showToast({ title: '录入成功', icon: 'none' });
 		},
 		toggleDropdown() {
 			this.showDropdown = !this.showDropdown;
@@ -242,7 +244,10 @@ export default {
 			this.selectedName = '';
 			this.targetUrl = '';
 		},
-		onManualInput(e) {},
+		onManualInput(e) {
+			this.targetUrl = e.detail.value;
+			this.selectedName = '';
+		},
 		readClipboard() {
 			uni.getClipboardData({ 
 				success: (res) => { 
@@ -261,15 +266,21 @@ export default {
 			const isValid = /^https?:\/\//i.test(url) && /[?&]appKey=/.test(url) && /[?&]code=/.test(url);
 			if (!isValid) return uni.showToast({ title: '无效链接：缺失参数', icon: 'none', duration: 3000 });
 			this.$emit('start-checkin', url);
-		},
-		resetApp() { this.$emit('reset-app'); }
+		}
 	}
 }
 </script>
 
 <style scoped>
+.tab-wrapper {
+	width: 100%;
+	padding: 0;
+	margin: 0;
+	box-sizing: border-box;
+}
 .btn-primary[disabled], .btn-primary:disabled { opacity: 0.6; pointer-events: none; }
-.btn-extract[disabled], .btn-extract:disabled { opacity: 0.4; pointer-events: none; background: transparent; border-color: rgba(255,255,255,0.1); color: var(--color-text-muted); }
+.btn-primary.is-generating { opacity: 0.8; pointer-events: none; }
+.btn-extract.is-generating { opacity: 0.4; pointer-events: none; }
 
 @keyframes dropdown-open {
 	from { opacity: 0; transform: scaleY(0.9); transform-origin: top; }
@@ -280,78 +291,406 @@ export default {
 	to { transform: translateY(0); opacity: 1; }
 }
 
+
 .card-home { border-top: 3px solid var(--color-primary); }
-.glow-home { top: -60px; left: -60px; background: radial-gradient(circle, rgba(204,151,255,0.2) 0%, transparent 70%); }
-.home-label { color: var(--color-text-main); text-shadow: 0 0 10px rgba(204,151,255,0.8); }
+.glow-home { top: -60px; left: -60px; background: radial-gradient(circle, rgba(0,95,156,0.25) 0%, transparent 70%); }
 
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.matrix-toggle { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--color-info); padding: 4px 8px; border-radius: 8px; background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.3); transition: all 0.2s; }
+.section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; color: var(--color-text-main); }
+.matrix-toggle { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--color-info); padding: 4px 8px; border-radius: 8px; background: rgba(0,95,156,0.1); border: 1px solid rgba(0,95,156,0.3); transition: all 0.2s; }
 .matrix-toggle:active { opacity: 0.7; transform: scale(0.95); }
 .icon-small { font-size: 14px; }
 
-.neon-input { position: relative; margin-bottom: 32px; background: var(--color-surface); border-radius: 12px; padding: 4px 16px; box-shadow: inset 0 0 0 1px var(--color-border); transition: all 0.3s; display: flex; align-items: center; z-index: 20; }
-.neon-input:focus-within { box-shadow: 0 0 20px rgba(204,151,255,0.2), inset 0 0 0 1px var(--color-primary); }
+.neon-input { position: relative; margin-bottom: 32px; background: rgba(0,20,35,0.4); border-radius: 12px; padding: 4px 16px; box-shadow: inset 0 1px 1px rgba(255,255,255,0.08), 0 0 0 1px rgba(0,95,156,0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.3s; display: flex; align-items: center; z-index: 20; }
+.neon-input:focus-within { box-shadow: 0 0 20px rgba(0,95,156,0.25), inset 0 0 0 1px var(--color-primary); }
 .custom-input { flex: 1; height: 48px; font-size: 14px; color: var(--color-text-main); background: transparent; border: none; outline: none; }
 .clear-icon { font-size: 18px; color: var(--color-text-muted); padding: 4px; margin-left: 8px; }
 
-.dropdown-trigger { display: flex; align-items: center; justify-content: center; padding-right: 8px; border-right: 1px solid var(--color-border); margin-right: 8px; color: var(--color-text-muted); transition: color 0.2s; }
+.dropdown-trigger { display: flex; align-items: center; justify-content: center; padding-right: 8px; border-right: 1px solid rgba(255,255,255,0.08); margin-right: 8px; color: var(--color-text-muted); transition: color 0.2s; }
 .dropdown-trigger:active { color: var(--color-primary); }
-.dropdown-list { position: absolute; top: calc(100% + 4px); left: 0; width: 100%; max-height: 160px; background: #1a1a24; border: 1px solid var(--color-border); border-radius: 12px; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-y: auto; animation: dropdown-open 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: top; }
+.dropdown-list { position: absolute; top: calc(100% + 4px); left: 0; width: 100%; max-height: 160px; background: rgba(0,20,35,0.9); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(0,95,156,0.3); border-radius: 12px; z-index: 100; box-shadow: inset 0 1px 1px rgba(255,255,255,0.08), 0 12px 40px rgba(0,0,0,0.6); overflow-y: auto; animation: dropdown-open 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: top; }
 .dropdown-item { padding: 14px 16px; font-size: 14px; color: var(--color-text-main); border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; cursor: pointer; }
 .dropdown-item:last-child { border-bottom: none; }
-.dropdown-item:active { background: rgba(255,255,255,0.1); }
+.dropdown-item:active { background: rgba(0,95,156,0.15); }
 .dropdown-item.empty { color: var(--color-text-muted); text-align: center; cursor: default; }
 
-.btn-primary { background: var(--color-primary); color: #360061; border-radius: 14px; height: 64px; font-weight: 800; border: none; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; margin-bottom: 16px; }
-.btn-primary:active { transform: scale(0.96); }
-.cursor-glow { position: absolute; width: 120px; height: 120px; background: radial-gradient(circle at center, rgba(255, 255, 255, 0.35) 0%, transparent 70%); transform: translate(-50%, -50%); pointer-events: none; }
-.btn-content { display: flex; align-items: center; gap: 10px; font-size: 16px; }
-.icon-move { transition: transform 0.3s; }
-.btn-primary:active .icon-move { transform: translateX(6px); }
+.btn-primary-sm { 
+	height: 44px; border-radius: 12px; margin: 0; font-size: 14px; font-weight: 600;
+	box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; 
+	background: var(--color-primary); color: #fff;
+	display: flex; align-items: center; justify-content: center;
+}
+
 .loading-text { font-size: 14px; letter-spacing: 1px; white-space: nowrap; animation: text-fade 0.5s ease; }
 
-.btn-extract { background: transparent; border-radius: 14px; height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; position: relative; transition: all 0.3s; color: var(--color-text-main); border: 1px solid rgba(204,151,255,0.3); }
-.btn-extract:active { background: rgba(204,151,255,0.1); }
-.underline-grow { position: absolute; bottom: 12px; width: 0; height: 1px; background: rgba(204, 151, 255, 0.6); transition: width 0.5s; }
-.btn-extract:active .underline-grow { width: 60px; }
+/* 极速打卡按钮 - 厚实果冻玻璃 */
+.btn-cyber {
+  position: relative; width: 100%; padding: 16px 0; border-radius: 18px;
+  background: linear-gradient(180deg, var(--color-primary-soft) 0%, rgba(0, 60, 120, 0.6) 100%);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--glass-shadow);
+  cursor: pointer; margin-bottom: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-cyber::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+  background: linear-gradient(180deg, rgba(100, 170, 255, 0.1) 0%, transparent 100%);
+  border-radius: 20px 20px 0 0; pointer-events: none;
+}
+.btn-cyber-text {
+  position: relative; z-index: 2; font-weight: 600; font-size: 17px;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.btn-cyber-loading {
+  position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: rgba(255, 255, 255, 0.8);
+}
+.btn-cyber:active { 
+  transform: scale(0.98); 
+  box-shadow: 
+    0 1px 4px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.btn-cyber.is-generating { opacity: 0.7; pointer-events: none; }
 
-.home-tut-trigger { margin-top: 24px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: bold; transition: color 0.3s; color: var(--color-text-muted); }
-.home-tut-trigger:active { color: var(--color-primary); }
+/* 提取链接按钮 - 轻薄玻璃 */
+.btn-extract {
+  background: rgba(15, 30, 60, 0.5);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(60, 100, 160, 0.25);
+  border-radius: 18px; height: 56px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: rgba(180, 210, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(80, 140, 220, 0.1);
+  margin-bottom: 12px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-extract:active { 
+  transform: scale(0.98); 
+  background: rgba(20, 40, 75, 0.6);
+}
 
-.emergency-container { width: 100%; display: flex; justify-content: center; margin-top: 60px; }
-.btn-emergency { width: 240px; background: transparent; border: none; padding: 16px; position: relative; overflow: hidden; display: flex; justify-content: center; }
-.reset-text { font-size: 10px; text-transform: uppercase; letter-spacing: 3px; color: var(--color-text-muted); font-weight: bold; position: relative; z-index: 5; transition: color 0.3s; }
-.btn-emergency:active .reset-text { color: var(--color-danger); }
-.reset-top-line { position: absolute; top: 0; left: 0; width: 100%; height: 1px; background: transparent; transform: scaleX(0); transition: all 0.7s; }
-.btn-emergency:active .reset-top-line { background: var(--color-primary); box-shadow: 0 0 10px var(--color-primary); transform: scaleX(0.6); }
+.tut-banner { 
+	background: rgba(15, 30, 60, 0.4);
+	backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(60, 100, 160, 0.2);
+	border-radius: 18px; padding: 18px;
+	display: flex; align-items: center; gap: 14px; cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.tut-banner:active { transform: scale(0.98); }
+.tut-banner-icon { 
+	width: 40px; height: 40px; border-radius: 12px; 
+	background: rgba(0, 80, 150, 0.3); 
+	color: rgba(120, 180, 255, 0.9); 
+	display: flex; align-items: center; justify-content: center; 
+}
+.tut-banner-text { flex: 1; display: flex; flex-direction: column; }
+.tut-title-sm { font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, 0.9); }
+.tut-sub-sm { font-size: 12px; color: rgba(255, 255, 255, 0.45); margin-top: 4px; }
+.tut-arrow { color: rgba(255, 255, 255, 0.3); font-size: 20px; }
 
-.tutorial-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(25px); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-.tutorial-card { width: 85%; background: var(--color-bg-dark); border: 1px solid var(--color-border); border-radius: 32px; padding: 32px; box-shadow: 0 0 60px rgba(204,151,255,0.15); animation: sheet-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.tutorial-title { font-size: 22px; font-weight: 800; color: var(--color-text-main); margin-bottom: 30px; text-align: center; display: block; }
-.tutorial-scroll { height: 45vh; }
-.tut-section { margin-bottom: 25px; }
-.tut-step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-.tut-step-num { font-size: 12px; font-weight: 900; color: var(--color-primary); background: rgba(204,151,255,0.1); padding: 4px 8px; border-radius: 6px; }
-.tut-step-title { font-size: 15px; font-weight: 800; color: #e4e4e7; }
-.tut-step-desc { font-size: 13px; color: var(--color-text-muted); line-height: 1.6; display: block; }
-.highlighting { background: rgba(204,151,255,0.04); border-radius: 16px; padding: 14px; border-left: 3px solid var(--color-primary); }
-.highlight-text { color: var(--color-primary); font-weight: bold; }
-.btn-close-tut { background: var(--color-primary); color: #360061; font-weight: 800; height: 52px; border-radius: 16px; margin-top: 20px; }
+.security-probe-panel { 
+	background: rgba(15, 30, 60, 0.5);
+	backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(60, 100, 160, 0.2);
+	border-radius: 18px; padding: 18px; margin-bottom: 20px; 
+	position: relative; overflow: hidden;
+	box-shadow: inset 0 1px 0 rgba(80, 140, 220, 0.08);
+}
+.probe-data-stream {
+	position: absolute; top: 0; right: 0; bottom: 0; left: 0; opacity: 0.02; pointer-events: none;
+	background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+	background-size: 100% 4px;
+}
+.probe-scanline {
+	position: absolute; top: -100%; left: 0; width: 100%; height: 100%;
+	background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.02), transparent);
+	animation: scanner-loop 4s linear infinite; pointer-events: none;
+}
+.probe-content { position: relative; z-index: 5; }
+.probe-header { display: flex; align-items: center; margin-bottom: 12px; }
+.probe-icon { 
+	color: #7dd3a8; font-size: 18px; margin-right: 8px; 
+}
+.probe-title { font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.5); flex: 1; letter-spacing: 0.5px; }
+.probe-status { 
+	display: flex; align-items: center; gap: 6px; 
+	font-size: 10px; font-weight: 600; 
+	padding: 5px 12px; border-radius: 20px; 
+	background: rgba(125, 211, 168, 0.1); 
+	color: #7dd3a8; 
+	border: 1px solid rgba(125, 211, 168, 0.15); 
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+.status-dot { 
+	width: 6px; height: 6px; border-radius: 50%; 
+	background: #7dd3a8; 
+	box-shadow: 0 0 8px rgba(125, 211, 168, 0.4); 
+	animation: pulse-dot 3s infinite; 
+}
 
-.matrix-card { border-top: 3px solid var(--color-info); animation: sheet-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.matrix-header { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; }
-.matrix-icon { color: var(--color-info); font-size: 28px; }
-.matrix-title { font-size: 18px; font-weight: 900; color: #fff; margin: 0; }
-.matrix-section { background: rgba(255,255,255,0.02); padding: 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
-.matrix-section-title { font-size: 12px; color: var(--color-text-muted); margin-bottom: 12px; display: block; font-weight: bold; }
-.matrix-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 20px 0; }
-.matrix-input { background: rgba(0,0,0,0.4); border: 1px solid var(--color-border); border-radius: 8px; padding: 0 12px; height: 40px; color: #fff; width: 100%; box-sizing: border-box; }
-.manage-action-area { display: flex; flex-direction: column; gap: 10px; }
-.action-row { display: flex; gap: 8px; }
-.btn-matrix-update { flex: 1; background: var(--color-info); color: #000; font-weight: bold; font-size: 14px; border-radius: 8px; height: 40px; display: flex; align-items: center; justify-content: center; border: none; }
-.btn-matrix-update:active { transform: scale(0.96); }
-.btn-matrix-delete { width: 50px; background: rgba(255,110,132,0.1); color: var(--color-danger); border: 1px solid rgba(255,110,132,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; height: 40px; }
-.btn-matrix-delete:active { background: var(--color-danger); color: #fff; }
+.probe-metrics { 
+	display: flex; align-items: center; justify-content: space-between; 
+	background: rgba(255, 255, 255, 0.03); 
+	padding: 12px; border-radius: 14px; 
+	border: 1px solid rgba(255, 255, 255, 0.04); 
+}
+.metric-item { display: flex; flex-direction: column; gap: 4px; flex: 1; align-items: center; }
+.metric-label { 
+	font-size: 9px; 
+	color: rgba(255, 255, 255, 0.35); 
+	text-transform: uppercase; 
+	letter-spacing: 1.5px; 
+	font-weight: 600; 
+}
+.metric-value { 
+	font-size: 13px; 
+	color: rgba(255, 255, 255, 0.85); 
+	font-weight: 600; 
+	display: flex; align-items: center; gap: 4px; 
+	font-family: 'JetBrains Mono', 'Roboto Mono', monospace; 
+}
+.active-text { 
+	color: #7dd3a8; font-size: 9px; 
+	background: rgba(125, 211, 168, 0.1); 
+	padding: 2px 6px; border-radius: 4px; 
+	font-weight: 700; margin-left: 2px; 
+}
+.metric-divider { width: 1px; height: 18px; background: rgba(255, 255, 255, 0.06); }
 
-.dropdown-menu { position: absolute; top: calc(100% + 4px); left: 0; width: 100%; background: var(--color-bg-dark); border: 1px solid var(--color-border); border-radius: 12px; max-height: 160px; overflow-y: auto; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: dropdown-open 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: top; }
+@keyframes scanner-loop { 0% { top: -100%; } 100% { top: 100%; } }
+@keyframes scan-move { 0% { background-position: 0 0; } 100% { background-position: 0 100%; } }
+
+.matrix-drawer-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.4);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	z-index: 999;
+}
+
+.matrix-drawer {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	max-height: 85vh;
+	background: #1a2540;
+	border-radius: 24px 24px 0 0;
+	padding: 12px 20px 34px;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+}
+
+.matrix-drawer-line {
+	width: 36px;
+	height: 4px;
+	background: rgba(255, 255, 255, 0.2);
+	border-radius: 2px;
+	margin: 0 auto 16px;
+}
+
+.matrix-drawer-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 4px;
+}
+.matrix-drawer-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 17px;
+	font-weight: 700;
+	color: #fff;
+}
+.matrix-drawer-title text:first-child {
+	color: var(--color-info);
+	font-size: 22px;
+}
+.matrix-drawer-close {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.1);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.matrix-drawer-close text {
+	font-size: 18px;
+	color: rgba(255, 255, 255, 0.6);
+}
+.matrix-drawer-close:active {
+	background: rgba(255, 255, 255, 0.2);
+}
+
+.matrix-drawer-body {
+	flex: 1;
+	overflow-y: auto;
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+.matrix-drawer-section {
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	border-radius: 14px;
+	padding: 16px;
+	margin-bottom: 14px;
+}
+.matrix-drawer-section:last-child {
+	margin-bottom: 0;
+}
+
+.matrix-drawer-label {
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.4);
+	font-weight: 600;
+	margin-bottom: 12px;
+	display: block;
+}
+
+.matrix-select {
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 10px;
+	padding: 0 14px;
+	height: 44px;
+	display: flex;
+	align-items: center;
+	position: relative;
+}
+.matrix-select-text {
+	flex: 1;
+	font-size: 14px;
+	color: rgba(255, 255, 255, 0.6);
+}
+.matrix-select text:last-child {
+	color: rgba(255, 255, 255, 0.4);
+}
+
+.matrix-dropdown {
+	position: absolute;
+	top: calc(100% + 8px);
+	left: 0;
+	width: 100%;
+	background: rgba(10, 18, 35, 0.95);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 12px;
+	max-height: 180px;
+	overflow-y: auto;
+	z-index: 100;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.matrix-dropdown-item {
+	padding: 14px 16px;
+	font-size: 14px;
+	color: rgba(255, 255, 255, 0.85);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.matrix-dropdown-item:last-child {
+	border-bottom: none;
+}
+.matrix-dropdown-item:active {
+	background: rgba(0, 95, 156, 0.2);
+}
+.matrix-dropdown-empty {
+	padding: 16px;
+	text-align: center;
+	font-size: 13px;
+	color: rgba(255, 255, 255, 0.3);
+}
+
+.matrix-manage-area {
+	margin-top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.matrix-input {
+	width: 100%;
+	height: 44px;
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 10px;
+	padding: 0 14px;
+	font-size: 14px;
+	color: #fff;
+	box-sizing: border-box;
+	margin-bottom: 10px;
+}
+.matrix-input:last-of-type {
+	margin-bottom: 0;
+}
+
+.matrix-manage-btns {
+	display: flex;
+	gap: 10px;
+}
+.matrix-btn-update {
+	flex: 1;
+	height: 44px;
+	background: var(--color-info);
+	border-radius: 10px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 14px;
+	font-weight: 600;
+	color: #000;
+}
+.matrix-btn-update:active {
+	transform: scale(0.96);
+}
+.matrix-btn-delete {
+	width: 44px;
+	height: 44px;
+	background: rgba(220, 38, 38, 0.15);
+	border: 1px solid rgba(220, 38, 38, 0.3);
+	border-radius: 10px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #f87171;
+}
+.matrix-btn-delete:active {
+	background: #dc2626;
+	color: #fff;
+}
+
+.matrix-btn-submit {
+	width: 100%;
+	height: 46px;
+	background: var(--color-info);
+	border-radius: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 15px;
+	font-weight: 600;
+	color: #fff;
+	margin-top: 4px;
+}
+.matrix-btn-submit:active {
+	transform: scale(0.97);
+	opacity: 0.9;
+}
+
+.spinning { animation: spin 2s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes pulse-dot { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
 </style>

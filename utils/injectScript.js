@@ -213,7 +213,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			if(!document.getElementById('cyber_anim_styles')) {
 				const style = document.createElement('style');
 				style.id = 'cyber_anim_styles';
-				style.innerHTML = ':root { --cyber-primary: #cc97ff; --cyber-success: #4ade80; --cyber-info: #38bdf8; --cyber-danger: #ff6e84; --cyber-bg-modal: rgba(15, 15, 20, 0.95); } @keyframes cyber-pop { 0% { transform: translate(-50%, -40%); opacity: 0; } 100% { transform: translate(-50%, -50%); opacity: 1; } } @keyframes cyber-slide-down { 0% { top: -20px; opacity: 0; } 100% { top: 60px; opacity: 1; } } @keyframes cyber-slide-left { 0% { right: -50px; opacity: 0; } 100% { right: 15px; opacity: 1; } }';
+				style.innerHTML = ':root { --cyber-primary: #00E676; --cyber-success: #00E676; --cyber-info: #38bdf8; --cyber-danger: #ff453a; --cyber-bg: rgba(10, 10, 12, 0.9); } @keyframes cyber-pop { 0% { transform: translate(-50%, -40%); opacity: 0; } 100% { transform: translate(-50%, -50%); opacity: 1; } } @keyframes cyber-slide-down { 0% { top: -20px; opacity: 0; } 100% { top: 60px; opacity: 1; } }';
 				const root = document.head || document.documentElement || document.body;
 				if (root) root.appendChild(style);
 			}
@@ -223,175 +223,26 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			if (document.getElementById('cyber_hud')) return;
 			const monitor = document.createElement('div');
 			monitor.id = 'cyber_hud';
-			monitor.style.cssText = 'position:fixed;top:40px;left:50%;transform:translateX(-50%);background:rgba(10,10,10,0.85);border:1px solid var(--cyber-success);color:var(--cyber-success);padding:8px 16px;border-radius:20px;font-size:12px;font-weight:900;z-index:2147483647;backdrop-filter:blur(10px);box-shadow:0 0 20px rgba(74,222,128,0.2);display:flex;align-items:center;gap:8px;font-family:sans-serif;pointer-events:none;';
-			monitor.innerHTML = '<div style="width:8px;height:8px;border-radius:50%;background:var(--cyber-success);box-shadow:0 0 8px var(--cyber-success);"></div><span>PROXY HOOKED</span>';
+			monitor.style.cssText = 'position:fixed;top:40px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);border:1px solid rgba(0,230,118,0.4);color:#00E676;padding:6px 14px;border-radius:100px;font-size:10px;font-weight:900;z-index:2147483647;backdrop-filter:blur(10px);box-shadow:0 8px 24px rgba(0,0,0,0.5);display:flex;align-items:center;gap:8px;font-family:monospace;pointer-events:none;letter-spacing:1px;';
+			monitor.innerHTML = '<div style="width:6px;height:6px;border-radius:50%;background:#00E676;box-shadow:0 0 8px #00E676;animation:pulse 2s infinite;"></div><span>GEO-PROXY ACTIVE</span>';
 			const root = document.body || document.documentElement;
 			if (root) root.appendChild(monitor);
 		};
 
-		const ensureEditor = () => {
-			if (document.getElementById('cyber_coord_editor')) return;
-			const editor = document.createElement('div');
-			editor.id = 'cyber_coord_editor';
-			
-			editor.style.cssText = 'position:fixed;top:90px;right:15px;background:var(--cyber-bg-modal);border:1px solid var(--cyber-info);padding:12px;border-radius:12px;z-index:2147483647;backdrop-filter:blur(10px);box-shadow:0 0 15px rgba(56,189,248,0.2);display:flex;flex-direction:column;font-family:sans-serif;width:150px;animation:cyber-slide-left 0.4s ease;user-select:none;touch-action:none;';
-			
-			editor.innerHTML = 
-				'<div id="cyber_drag_handle" style="font-size:11px;color:var(--cyber-info);font-weight:bold;text-align:center;letter-spacing:1px;margin-bottom:8px;padding:6px;background:rgba(56,189,248,0.1);border-radius:6px;cursor:move;pointer-events:none;">✥ 控制台</div>' +
-				'<input id="cyber_lat_input" type="number" value="' + F_LAT + '" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:6px;padding:6px 4px;font-size:12px;text-align:center;box-sizing:border-box;margin-bottom:6px;" placeholder="Lat">' +
-				'<input id="cyber_lng_input" type="number" value="' + F_LNG + '" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;border-radius:6px;padding:6px 4px;font-size:12px;text-align:center;box-sizing:border-box;margin-bottom:8px;" placeholder="Lng">' +
-				'<div style="display:flex;gap:6px;">' +
-					'<button id="cyber_coord_reset" style="flex:1;background:rgba(255,255,255,0.1);color:#fff;border:none;border-radius:6px;padding:8px 0;font-size:11px;cursor:pointer;">回退</button>' +
-					'<button id="cyber_coord_update" style="flex:2;background:var(--cyber-info);color:#000;border:none;border-radius:6px;padding:8px 0;font-weight:bold;font-size:11px;cursor:pointer;transition:all 0.2s;">应用</button>' +
-				'</div>';
-			
-			const root = document.body || document.documentElement;
-			if (root) root.appendChild(editor);
-
-			let isDragging = false;
-			let startX, startY, initialX, initialY;
-			let longPressTimer = null;
-			let wasDragging = false;
-
-			const dragStart = (e) => {
-				const targetTag = e.target.tagName.toLowerCase();
-				if (targetTag === 'input') return;
-
-				if(e.type === 'touchstart') {
-					startX = e.touches[0].clientX;
-					startY = e.touches[0].clientY;
-				} else {
-					startX = e.clientX;
-					startY = e.clientY;
+		const syncToApp = () => {
+			try {
+				if(window.plus) {
+					const wv = plus.webview.currentWebview();
+					const parent = wv.parent() || wv.opener();
+					if(parent) parent.evalJS("if(window.__updateGlobalCoords) window.__updateGlobalCoords("+F_LAT+", "+F_LNG+")");
 				}
-				
-				const rect = editor.getBoundingClientRect();
-				initialX = rect.left;
-				initialY = rect.top;
-				
-				clearTimeout(longPressTimer);
-				longPressTimer = setTimeout(() => {
-					isDragging = true;
-					editor.style.right = 'auto'; 
-					editor.style.left = initialX + 'px';
-					editor.style.top = initialY + 'px';
-					editor.style.animation = 'none'; 
-					editor.style.transform = 'scale(1.02)';
-					editor.style.transition = 'transform 0.2s';
-					try { if(navigator.vibrate) navigator.vibrate(40); } catch(err){}
-				}, 350);
-			};
-
-			const dragMove = (e) => {
-				let currentX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-				let currentY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
-
-				if(!isDragging) {
-					if (Math.abs(currentX - startX) > 10 || Math.abs(currentY - startY) > 10) {
-						clearTimeout(longPressTimer);
-					}
-					return;
-				}
-
-				e.preventDefault(); 
-				
-				let newX = initialX + currentX - startX;
-				let newY = initialY + currentY - startY;
-
-				const maxX = window.innerWidth - editor.offsetWidth;
-				const maxY = window.innerHeight - editor.offsetHeight;
-
-				newX = Math.max(0, Math.min(newX, maxX));
-				newY = Math.max(0, Math.min(newY, maxY));
-
-				editor.style.transition = 'none';
-				editor.style.left = newX + 'px';
-				editor.style.top = newY + 'px';
-			};
-
-			const dragEnd = () => { 
-				clearTimeout(longPressTimer);
-				if (isDragging) {
-					isDragging = false;
-					wasDragging = true;
-					editor.style.transform = 'scale(1)';
-					editor.style.transition = 'transform 0.2s';
-					setTimeout(() => { wasDragging = false; }, 100);
-				}
-			};
-
-			editor.addEventListener('touchstart', dragStart, {passive: false});
-			document.addEventListener('touchmove', dragMove, {passive: false});
-			document.addEventListener('touchend', dragEnd);
-			editor.addEventListener('mousedown', dragStart);
-			document.addEventListener('mousemove', dragMove);
-			document.addEventListener('mouseup', dragEnd);
-			
-			editor.addEventListener('click', (e) => {
-				if (wasDragging) {
-					e.preventDefault();
-					e.stopPropagation();
-				}
-			}, { capture: true });
-
-			const syncToApp = () => {
-				try {
-					if(window.plus) {
-						const wv = plus.webview.currentWebview();
-						const parent = wv.parent() || wv.opener();
-						if(parent) parent.evalJS("if(window.__updateGlobalCoords) window.__updateGlobalCoords("+F_LAT+", "+F_LNG+")");
-					}
-				} catch(e){}
-			};
-
-			const updateBtn = document.getElementById('cyber_coord_update');
-			if (updateBtn) {
-				updateBtn.onclick = () => {
-					const newLat = parseFloat(document.getElementById('cyber_lat_input').value);
-					const newLng = parseFloat(document.getElementById('cyber_lng_input').value);
-					if(!isNaN(newLat) && !isNaN(newLng)) {
-						F_LAT = newLat;
-						F_LNG = newLng;
-						window.__CYBER_BOX_SHOWN = false; 
-						
-						updateBtn.innerText = '生效';
-						updateBtn.style.background = 'var(--cyber-success)';
-						setTimeout(() => {
-							updateBtn.innerText = '应用';
-							updateBtn.style.background = 'var(--cyber-info)';
-						}, 2000);
-						syncToApp();
-					}
-				};
-			}
-
-			const resetBtn = document.getElementById('cyber_coord_reset');
-			if (resetBtn) {
-				resetBtn.onclick = () => {
-					document.getElementById('cyber_lat_input').value = D_LAT;
-					document.getElementById('cyber_lng_input').value = D_LNG;
-					F_LAT = D_LAT;
-					F_LNG = D_LNG;
-					window.__CYBER_BOX_SHOWN = false; 
-					
-					resetBtn.innerText = '已回退';
-					resetBtn.style.background = 'rgba(74,222,128,0.2)';
-					resetBtn.style.color = 'var(--cyber-success)';
-					setTimeout(() => {
-						resetBtn.innerText = '回退';
-						resetBtn.style.background = 'rgba(255,255,255,0.1)';
-						resetBtn.style.color = '#fff';
-					}, 2000);
-					syncToApp();
-				};
-			}
+			} catch(e){}
 		};
 
 		const uiWatchdog = () => {
 			try {
 				ensureStyles();
 				ensureHUD();
-				ensureEditor();
 			} catch (e) {}
 		};
 		uiWatchdog();
@@ -401,8 +252,8 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			if (document.getElementById('cyber_confirm')) return;
 			const box = document.createElement('div');
 			box.id = 'cyber_confirm';
-			box.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:var(--cyber-bg-modal);border:1px solid var(--cyber-primary);color:#fff;padding:24px;border-radius:24px;z-index:2147483647;backdrop-filter:blur(20px);box-shadow:0 0 40px rgba(204,151,255,0.3);text-align:center;width:80%;max-width:320px;font-family:sans-serif;animation: cyber-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);';
-			box.innerHTML = '<div style="font-size:18px;font-weight:900;margin-bottom:12px;color:var(--cyber-primary);text-shadow:0 0 10px rgba(204,151,255,0.8);">操作确认</div><div style="font-size:13px;color:#a1a1aa;margin-bottom:24px;line-height:1.6;">已锁定至目标区域，是否执行业务请求？</div><div style="display:flex;gap:12px;"><button id="btn_cancel_ck" style="flex:1;padding:12px;border:none;border-radius:12px;background:rgba(255,255,255,0.05);color:#a1a1aa;font-weight:bold;">取消</button><button id="btn_confirm_ck" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--cyber-primary);color:#050505;font-weight:900;box-shadow:0 0 15px rgba(204,151,255,0.4);">确认执行</button></div>';
+			box.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:var(--cyber-bg);border:1px solid var(--cyber-primary);color:#fff;padding:24px;border-radius:24px;z-index:2147483647;backdrop-filter:blur(20px);box-shadow:0 0 40px rgba(0,230,118,0.3);text-align:center;width:80%;max-width:320px;font-family:monospace;animation: cyber-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);';
+			box.innerHTML = '<div style="font-size:18px;font-weight:900;margin-bottom:12px;color:var(--cyber-primary);text-shadow:0 0 10px rgba(0,230,118,0.8);">操作确认</div><div style="font-size:13px;color:#a1a1aa;margin-bottom:24px;line-height:1.6;">已锁定至目标区域，是否执行业务请求？</div><div style="display:flex;gap:12px;"><button id="btn_cancel_ck" style="flex:1;padding:12px;border:none;border-radius:12px;background:rgba(255,255,255,0.05);color:#a1a1aa;font-weight:bold;">取消</button><button id="btn_confirm_ck" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--cyber-primary);color:#050505;font-weight:900;box-shadow:0 0 15px rgba(0,230,118,0.4);">确认执行</button></div>';
 			
 			const root = document.body || document.documentElement;
 			if (root) root.appendChild(box);
@@ -482,7 +333,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			const color = isSuccess ? 'var(--cyber-success)' : 'var(--cyber-danger)';
 			const title = isSuccess ? '请求成功' : '请求失败';
 			const toast = document.createElement('div');
-			toast.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--cyber-bg-modal);border:1px solid '+color+';color:'+color+';padding:14px 24px;border-radius:30px;font-size:15px;font-weight:900;z-index:2147483647;backdrop-filter:blur(20px);box-shadow:0 0 30px '+color+'50;display:flex;align-items:center;gap:10px;animation: cyber-slide-down 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);white-space:nowrap;';
+			toast.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--cyber-bg);border:1px solid '+color+';color:'+color+';padding:14px 24px;border-radius:30px;font-size:15px;font-weight:900;z-index:2147483647;backdrop-filter:blur(20px);box-shadow:0 0 30px '+color+'50;display:flex;align-items:center;gap:10px;animation: cyber-slide-down 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);white-space:nowrap;font-family:monospace;';
 			toast.innerHTML = title + '<span style="font-size:12px;opacity:0.8;font-weight:normal;max-width:180px;overflow:hidden;text-overflow:ellipsis;">' + msg + '</span>';
 			
 			const root = document.body || document.documentElement;

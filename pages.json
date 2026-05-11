@@ -3,7 +3,7 @@
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "智能打卡",
+				"navigationBarTitleText": "幻签",
 				"navigationStyle": "custom",
 				"app-plus": {
 					"titleNView": false, 
@@ -14,7 +14,7 @@
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "white",
-		"navigationBarTitleText": "智能打卡",
+		"navigationBarTitleText": "幻签",
 		"navigationBarBackgroundColor": "#08080c",
 		"backgroundColor": "#08080c"
 	}
