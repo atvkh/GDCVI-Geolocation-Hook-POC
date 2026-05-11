@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="unpackage/res/icons/192x192.png" width="100" height="100" alt="幻签 Logo">
+<img src="https://i.ibb.co/N68R5zQs/mmexport1778522797493.png" width="100" height="100" alt="幻签 Logo">
 
 # 幻签 · PhantomSign
 
@@ -71,7 +71,7 @@
 
 ## 核心特性
 
-### 定位 API 深度拦截
+### 🛰️ 定位 API 深度拦截
 
 | API | 拦截方式 | 状态 |
 |:---|:---|:---|
@@ -83,7 +83,7 @@
 | `HTMLIFrameElement.prototype.src` | Setter 劫持 | ✅ |
 | `window.addEventListener('message')` | 事件过滤 | ✅ |
 
-### GPS 噪声模拟算法
+### 📡 GPS 噪声模拟算法
 
 ```javascript
 // 高斯随机抖动 - 模拟真实 GPS 硬件噪声
@@ -96,7 +96,7 @@ fakeLng = baseLng + gaussianJitter()
 accuracy = randomAccuracy()
 ```
 
-### 函数指纹脱敏
+### 🔐 函数指纹脱敏
 
 ```javascript
 // Proxy toString 伪装 - 对抗静态代码扫描
@@ -184,29 +184,29 @@ const proxyToString = new Proxy(Function.prototype.toString, {
 
 ```
 PhantomSign/
-├── pages/
-│   └── index/
-│       └── index.vue              # 主页面路由容器
-├── components/
-│   ├── TabHome.vue                # 首页组件 - 打卡操作 & 矩阵库
-│   ├── TabHistory.vue             # 历史记录组件 - 签到状态追踪
-│   └── TabSettings.vue            # 设置组件 - 坐标配置管理
-├── utils/
-│   ├── constants.js               # 常量配置中心
-│   └── injectScript.js            # Hook 脚本生成器
-├── static/
-│   ├── css/
-│   │   └── global.css             # 全局样式表
-│   ├── fonts/
-│   │   └── MaterialSymbolsOutlined.woff2
-│   └── logo.png
-├── App.vue                        # 应用入口
-├── main.js                        # 主入口 (Vue 3 SSR)
-├── manifest.json                  # Uni-App 配置
-├── pages.json                     # 路由配置
-├── uni.scss                       # SCSS 变量
-├── package.json                   # 依赖管理
-└── .eslintrc.json                 # ESLint 配置
+├── 📁 pages/
+│   └── 📁 index/
+│       └── 📄 index.vue              # 主页面路由容器
+├── 📁 components/
+│   ├── 📄 TabHome.vue                # 首页组件 - 打卡操作 & 矩阵库
+│   ├── 📄 TabHistory.vue             # 历史记录组件 - 签到状态追踪
+│   └── 📄 TabSettings.vue            # 设置组件 - 坐标配置管理
+├── 📁 utils/
+│   ├── 📄 constants.js               # 常量配置中心
+│   └── 📄 injectScript.js            # Hook 脚本生成器
+├── 📁 static/
+│   ├── 📁 css/
+│   │   └── 📄 global.css             # 全局样式表
+│   ├── 📁 fonts/
+│   │   └── 📄 MaterialSymbolsOutlined.woff2
+│   └── 🖼️ logo.png
+├── 📄 App.vue                        # 应用入口
+├── 📄 main.js                        # 主入口 (Vue 3 SSR)
+├── 📄 manifest.json                  # Uni-App 配置
+├── 📄 pages.json                     # 路由配置
+├── 📄 uni.scss                       # SCSS 变量
+├── 📄 package.json                   # 依赖管理
+└── 📄 .eslintrc.json                 # ESLint 配置
 ```
 
 ---
@@ -218,33 +218,33 @@ PhantomSign/
 ```
 Phase 1: 环境准备
 ┌─────────────────────────────────────────────────────────────┐
-│  1. 用户输入/粘贴带鉴权参数的签到 URL                         │
-│  2. 应用初始化 WebView 并加载目标页面                          │
-│  3. 触发 Hook 引擎注入序列                                    │
+│  ① 用户输入/粘贴带鉴权参数的签到 URL                         │
+│  ② 应用初始化 WebView 并加载目标页面                          │
+│  ③ 触发 Hook 引擎注入序列                                    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               v
 Phase 2: Hook 注入
 ┌─────────────────────────────────────────────────────────────┐
-│  4. evalJS 多轮重试注入 (150次 @ 20ms间隔)                    │
-│  5. setInterval 保活注入 (1次/秒)                             │
-│  6. 代理链建立完成，开始拦截                                   │
+│  ④ evalJS 多轮重试注入 (150次 @ 20ms间隔)                    │
+│  ⑤ setInterval 保活注入 (1次/秒)                             │
+│  ⑥ 代理链建立完成，开始拦截                                   │
 └─────────────────────────────────────────────────────────────┘
                               │
                               v
 Phase 3: 定位拦截
 ┌─────────────────────────────────────────────────────────────┐
-│  7. Geolocation API 调用被 Proxy 拦截                         │
-│  8. 回传包含高斯噪声的伪造坐标                                 │
-│  9. 精度值模拟为 10-15 米                                     │
+│  ⑦ Geolocation API 调用被 Proxy 拦截                         │
+│  ⑧ 回传包含高斯噪声的伪造坐标                                 │
+│  ⑨ 精度值模拟为 10-15 米                                     │
 └─────────────────────────────────────────────────────────────┘
                               │
                               v
 Phase 4: 结果回传
 ┌─────────────────────────────────────────────────────────────┐
-│  10. XHR 劫持捕获签到响应                                     │
-│  11. 解析签到结果 (成功/失败 + 原因)                           │
-│  12. 通过 evalJS 回传至原生 App 展示                           │
+│  ⑩ XHR 劫持捕获签到响应                                     │
+│  ⑪ 解析签到结果 (成功/失败 + 原因)                           │
+│  ⑫ 通过 evalJS 回传至原生 App 展示                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -269,10 +269,10 @@ git clone https://github.com/atvkh/GDCVI-Geolocation-Hook-POC.git
 # 2. 使用 HBuilderX 打开项目
 
 # 3. 运行到设备
-#    运行 -> 运行到手机或模拟器 -> 选择目标设备
+#    运行 → 运行到手机或模拟器 → 选择目标设备
 
 # 4. 自定义打包
-#    发行 -> 原生App-云打包 -> 配置签名 -> 打包
+#    发行 → 原生App-云打包 → 配置签名 → 打包
 ```
 
 ### 配置说明
@@ -296,7 +296,7 @@ export const MAX_HISTORY_RECORDS = 15;   // 历史记录上限
 
 ## 功能详解
 
-### 首页 · TabHome
+### 🏠 首页 · TabHome
 
 | 功能 | 描述 |
 |:---|:---|
@@ -305,7 +305,7 @@ export const MAX_HISTORY_RECORDS = 15;   // 历史记录上限
 | 安全探针 | 实时显示设备指纹掩码与坐标扰动状态 |
 | 极速打卡 | 一键触发注入与签到流程 |
 
-### 历史记录 · TabHistory
+### 📊 历史记录 · TabHistory
 
 | 功能 | 描述 |
 |:---|:---|
@@ -314,7 +314,7 @@ export const MAX_HISTORY_RECORDS = 15;   // 历史记录上限
 | 统计面板 | 成功/失败/本周计数 |
 | 数据导出 | 复制到剪贴板 |
 
-### 设置 · TabSettings
+### ⚙️ 设置 · TabSettings
 
 | 功能 | 描述 |
 |:---|:---|
@@ -330,20 +330,24 @@ export const MAX_HISTORY_RECORDS = 15;   // 历史记录上限
 
 ### v11.0.0 (当前版本)
 
-- 修复 weekCount 计算逻辑 bug
-- 修复 showCoordSheet 未定义问题
-- 统一版本号管理
-- 优化错误处理，添加日志记录
-- 组件化重构 (TabHistory / TabSettings)
-- CSS 提取到独立文件
-- 添加 package.json 和 ESLint 配置
-- 重写 README.md
+```
+✦ 修复 weekCount 计算逻辑 bug
+✦ 修复 showCoordSheet 未定义问题
+✦ 统一版本号管理
+✦ 优化错误处理 (添加日志记录)
+✦ 组件化重构 (TabHistory / TabSettings)
+✦ CSS 提取到独立文件
+✦ 添加 package.json 和 ESLint 配置
+✦ 重写 README.md
+```
 
 ### v10.9.0
 
-- 初始版本发布
-- 基础定位 Hook 功能
-- XHR 劫持与结果回传
+```
+✦ 初始版本发布
+✦ 基础定位 Hook 功能
+✦ XHR 劫持与结果回传
+```
 
 ---
 
@@ -364,7 +368,7 @@ export const MAX_HISTORY_RECORDS = 15;   // 历史记录上限
 
 ## 免责声明
 
-> **本项目仅供前端安全技术研究与合法授权的安全测试使用。**
+> ⚠️ **本项目仅供前端安全技术研究与合法授权的安全测试使用。**
 
 - 请勿将本项目用于任何违反法律法规或学校规章制度的用途
 - 使用者应确保在合法授权范围内进行安全测试
@@ -379,6 +383,10 @@ export const MAX_HISTORY_RECORDS = 15;   // 历史记录上限
 
 <br>
 
-Made with coffee and shield
+Made with ☕ & 🛡️
+
+<br>
+
+![Visitors](https://api.visitorbadge.io/api/visitors?path=atvkh%2FGDCVI-Geolocation-Hook-POC&countColor=%2300d4ff&style=for-the-badge)
 
 </div>
