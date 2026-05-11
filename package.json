@@ -1,0 +1,26 @@
+{
+  "name": "幻签",
+  "version": "11.0.0",
+  "description": "移动端 WebView 地理定位 API 拦截 POC",
+  "main": "main.js",
+  "scripts": {
+    "lint": "eslint --ext .js,.vue .",
+    "lint:fix": "eslint --ext .js,.vue . --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atvkh/GDCVI-Geolocation-Hook-POC"
+  },
+  "keywords": [
+    "uni-app",
+    "vue3",
+    "geolocation",
+    "hook"
+  ],
+  "author": "Atvkh",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-plugin-vue": "^9.0.0"
+  }
+}

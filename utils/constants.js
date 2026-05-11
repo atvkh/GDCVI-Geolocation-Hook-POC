@@ -1,7 +1,7 @@
 // utils/constants.js
 
-export const APP_VERSION = '11.0';
-export const APP_VERSION_CODE = 110;
+export const APP_VERSION = '11.0.0';
+export const APP_VERSION_CODE = 111;
 
 export const UPDATE_JSON_URL = 'https://raw.githubusercontent.com/atvkh/GDCVI-Geolocation-Hook-POC/main/update.json'; 
 

@@ -52,7 +52,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 					enumerable: origIframeSrcDesc.enumerable
 				});
 			}
-		} catch(e) {}
+		} catch(e) { console.warn('[CyberHook] iframe src proxy error:', e); }
 
 		const observer = new MutationObserver(mutations => {
 			mutations.forEach(m => {
@@ -236,14 +236,14 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 					const parent = wv.parent() || wv.opener();
 					if(parent) parent.evalJS("if(window.__updateGlobalCoords) window.__updateGlobalCoords("+F_LAT+", "+F_LNG+")");
 				}
-			} catch(e){}
+			} catch(e){ console.warn('[CyberHook] syncToApp error:', e); }
 		};
 
 		const uiWatchdog = () => {
 			try {
 				ensureStyles();
 				ensureHUD();
-			} catch (e) {}
+			} catch (e) { console.warn('[CyberHook] uiWatchdog error:', e); }
 		};
 		uiWatchdog();
 		setInterval(uiWatchdog, 1500);
@@ -278,7 +278,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 								break;
 							}
 						}
-					} catch(e) {}
+					} catch(e) { console.warn('[CyberHook] TreeWalker error:', e); }
 					
 					if (targetBtn) {
 						window.__AUTO_CLICKED__ = true;
@@ -326,7 +326,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 						}
 					}
 				}
-			} catch(e) {}
+			} catch(e) { console.warn('[CyberHook] button detection error:', e); }
 		}, 500);
 
 		const showToast = (isSuccess, msg) => {
@@ -346,7 +346,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 					const safeMsg = (msg || '').toString().replace(/['"\\\\\\n\\r]/g, '');
 					if(parent) parent.evalJS("if(window.__handleCheckinResult) window.__handleCheckinResult("+isSuccess+", '"+safeMsg+"')");
 				}
-			} catch(e){}
+			} catch(e){ console.warn('[CyberHook] showToast evalJS error:', e); }
 			setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4000);
 		};
 
@@ -383,7 +383,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 
 						showToast(isSuccess, msg);
 						window.__AUTO_CLICKED__ = false;
-					} catch(e) {}
+					} catch(e) { console.warn('[CyberHook] XHR response parse error:', e); }
 				}
 			});
 			return origSend.apply(this, arguments);
