@@ -4,3 +4,15 @@ unpackage/
 *.keystore
 *.apk
 .DS_Store
+
+# 测试相关
+coverage/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# 系统文件
+Thumbs.db
+Desktop.ini

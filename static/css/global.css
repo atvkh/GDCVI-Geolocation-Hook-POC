@@ -434,17 +434,15 @@ page { background: var(--color-bg-dark); }
 
 /* 页面切换动画 */
 .page-transition {
-	opacity: 0;
-	position: absolute;
-	width: 100%;
-	pointer-events: none;
-	visibility: hidden;
-	will-change: opacity;
+	display: none;
 }
 .page-transition.page-active {
-	opacity: 1;
-	pointer-events: auto;
-	visibility: visible;
+	display: block;
+	animation: card-fade-in 0.4s cubic-bezier(0.2, 1, 0.3, 1);
+}
+@keyframes card-fade-in {
+	from { opacity: 0; transform: translateY(8px); }
+	to { opacity: 1; transform: translateY(0); }
 }
 .page-card-icon {
 	font-size: 24px;

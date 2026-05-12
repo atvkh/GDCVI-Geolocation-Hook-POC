@@ -899,4 +899,83 @@ export default {
 	font-size: 20px;
 	color: #4ade80;
 }
+
+/* 预设点编辑弹窗样式 */
+.preset-form {
+	margin-bottom: 24px;
+}
+
+.preset-modal-actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding-top: 8px;
+}
+
+.btn-preset-delete {
+	width: 48px;
+	height: 48px;
+	border-radius: 14px;
+	background: rgba(220, 38, 38, 0.12);
+	border: 1px solid rgba(220, 38, 38, 0.3);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-preset-delete:active {
+	transform: scale(0.92);
+	background: rgba(220, 38, 38, 0.25);
+}
+
+.btn-preset-delete .material-symbols-outlined {
+	font-size: 20px;
+	color: #f87171;
+}
+
+.btn-preset-cancel {
+	flex: 1;
+	height: 48px;
+	border-radius: 14px;
+	background: rgba(255, 255, 255, 0.06);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 15px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.7);
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-preset-cancel:active {
+	transform: scale(0.96);
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.btn-preset-save {
+	flex: 2;
+	height: 48px;
+	border-radius: 14px;
+	background: linear-gradient(180deg, var(--color-primary-soft) 0%, rgba(0, 60, 120, 0.6) 100%);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+	border: 1px solid var(--color-border);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 15px;
+	font-weight: 600;
+	color: #ffffff;
+	box-shadow: 0 4px 16px rgba(0, 40, 80, 0.3), inset 0 1px 0 rgba(120, 180, 255, 0.15);
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-preset-save:active {
+	transform: scale(0.96);
+	opacity: 0.9;
+}
 </style>

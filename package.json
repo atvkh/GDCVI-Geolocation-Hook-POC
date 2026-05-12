@@ -5,7 +5,10 @@
   "main": "main.js",
   "scripts": {
     "lint": "eslint --ext .js,.vue .",
-    "lint:fix": "eslint --ext .js,.vue . --fix"
+    "lint:fix": "eslint --ext .js,.vue . --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
@@ -20,7 +23,10 @@
   "author": "Atvkh",
   "license": "MIT",
   "devDependencies": {
+    "@vue/test-utils": "^2.4.10",
     "eslint": "^8.0.0",
-    "eslint-plugin-vue": "^9.0.0"
+    "eslint-plugin-vue": "^9.0.0",
+    "happy-dom": "^20.9.0",
+    "vitest": "^4.1.6"
   }
 }

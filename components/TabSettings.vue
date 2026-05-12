@@ -172,19 +172,6 @@ export default {
 	from { opacity: 0; transform: scale(0.96) translateY(8px); }
 	to { opacity: 1; transform: scale(1) translateY(0); }
 }
-.page-transition {
-	opacity: 0;
-	position: absolute;
-	width: 100%;
-	pointer-events: none;
-	visibility: hidden;
-	will-change: opacity;
-}
-.page-transition.page-active {
-	opacity: 1;
-	pointer-events: auto;
-	visibility: visible;
-}
 .page-card-header {
 	display: flex; align-items: center; gap: 12px;
 	margin-bottom: 20px;

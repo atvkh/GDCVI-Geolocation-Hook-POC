@@ -343,8 +343,10 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 				if(window.plus) {
 					const wv = plus.webview.currentWebview();
 					const parent = wv.parent() || wv.opener();
-					const safeMsg = (msg || '').toString().replace(/['"\\\\\\n\\r]/g, '');
-					if(parent) parent.evalJS("if(window.__handleCheckinResult) window.__handleCheckinResult("+isSuccess+", '"+safeMsg+"')");
+					if(parent) {
+						const encodedMsg = encodeURIComponent(msg || '');
+						parent.evalJS("(function(){try{if(window.__handleCheckinResult) window.__handleCheckinResult(" + (isSuccess ? 'true' : 'false') + ", decodeURIComponent('" + encodedMsg + "'))}catch(e){console.warn('__handleCheckinResult error:',e)}})()");
+					}
 				}
 			} catch(e){ console.warn('[CyberHook] showToast evalJS error:', e); }
 			setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4000);
@@ -362,7 +364,8 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			this.addEventListener('load', function() {
 				if (window.__AUTO_CLICKED__) {
 					try {
-						const res = JSON.parse(this.responseText);
+						let res = {};
+						try { res = JSON.parse(this.responseText); } catch(e) { res = {}; }
 						let msg = res.message || res.msg || res.error || '';
 						
 						if (!msg && (this._method || '').toUpperCase() === 'GET') return; 
@@ -372,8 +375,10 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 							isSuccess = true;
 						} else if (msg.includes('失败') || msg.includes('不在') || msg.includes('未到') || msg.includes('不允许') || msg.includes('异常') || msg.includes('无法') || msg.includes('距离太远')) {
 							isSuccess = false;
-						} else {
+						} else if (res.code !== undefined || res.success !== undefined) {
 							isSuccess = (res.code === 200 || res.code === 0 || res.success === true);
+						} else {
+							isSuccess = (this.status >= 200 && this.status < 300);
 						}
 
 						if (!msg) msg = isSuccess ? '已完成' : '状态非预期';
@@ -388,5 +393,43 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			});
 			return origSend.apply(this, arguments);
 		};
+
+		const origFetch = window.fetch;
+		if (origFetch) {
+			window.fetch = function() {
+				return origFetch.apply(this, arguments).then(response => {
+					if (window.__AUTO_CLICKED__) {
+						const clonedResponse = response.clone();
+						clonedResponse.text().then(text => {
+							try {
+								let res = {};
+								try { res = JSON.parse(text); } catch(e) { res = {}; }
+								let msg = res.message || res.msg || res.error || '';
+								
+								let isSuccess = false;
+								if (msg.includes('成功')) {
+									isSuccess = true;
+								} else if (msg.includes('失败') || msg.includes('不在') || msg.includes('未到') || msg.includes('不允许') || msg.includes('异常') || msg.includes('无法') || msg.includes('距离太远')) {
+									isSuccess = false;
+								} else if (res.code !== undefined || res.success !== undefined) {
+									isSuccess = (res.code === 200 || res.code === 0 || res.success === true);
+								} else {
+									isSuccess = response.ok;
+								}
+
+								if (!msg) msg = isSuccess ? '已完成' : '状态非预期';
+
+								const hud = document.getElementById('cyber_hud');
+								if(hud) hud.style.display = 'none';
+
+								showToast(isSuccess, msg);
+								window.__AUTO_CLICKED__ = false;
+							} catch(e) { console.warn('[CyberHook] fetch response parse error:', e); }
+						});
+					}
+					return response;
+				});
+			};
+		}
 	})();`;
 };

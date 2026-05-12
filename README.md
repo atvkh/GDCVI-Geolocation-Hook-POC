@@ -176,7 +176,13 @@ PhantomSign/
 │   └── 📄 SchoolEditor.vue           # 学校编辑组件
 ├── 📁 utils/
 │   ├── 📄 constants.js               # 常量配置中心
+│   ├── 📄 crypto.js                  # 加密存储工具
 │   └── 📄 injectScript.js            # Hook 脚本生成器
+├── 📁 tests/                         # 单元测试
+│   ├── 📄 setup.js                   # 测试环境配置
+│   ├── 📄 crypto.test.js             # 加解密功能测试
+│   ├── 📄 history.test.js            # 历史记录逻辑测试
+│   └── 📄 injectScript.test.js       # 注入脚本生成测试
 ├── 📁 static/
 │   ├── 📁 css/
 │   │   └── 📄 global.css             # 全局样式表
@@ -189,6 +195,7 @@ PhantomSign/
 ├── 📄 pages.json                     # 路由配置
 ├── 📄 uni.scss                       # SCSS 变量
 ├── 📄 package.json                   # 依赖管理
+├── 📄 vitest.config.js               # 测试框架配置
 └── 📄 .eslintrc.json                 # ESLint 配置
 ```
 
@@ -249,13 +256,29 @@ Phase 4: 结果回传
 # 1. 克隆仓库
 git clone https://github.com/atvkh/GDCVI-Geolocation-Hook-POC.git
 
-# 2. 使用 HBuilderX 打开项目
+# 2. 安装依赖
+npm install
 
-# 3. 运行到设备
+# 3. 使用 HBuilderX 打开项目
+
+# 4. 运行到设备
 #    运行 → 运行到手机或模拟器 → 选择目标设备
 
-# 4. 自定义打包
+# 5. 自定义打包
 #    发行 → 原生App-云打包 → 配置签名 → 打包
+```
+
+### 运行测试
+
+```bash
+# 运行所有测试
+npm test
+
+# 监听模式（开发时使用）
+npm run test:watch
+
+# 生成测试覆盖率报告
+npm run test:coverage
 ```
 
 ---
@@ -353,7 +376,8 @@ git clone https://github.com/atvkh/GDCVI-Geolocation-Hook-POC.git
 |:---|:---|
 | 代码文件数 | 15 |
 | 总代码行数 | ~3,500 |
-| npm 依赖数 | 0 |
+| 测试用例数 | 47 |
+| npm 依赖数 | 2 (开发依赖) |
 | 包体积 | ~17.7 MB |
 | 注入成功率 | 99.2%* |
 | 平均注入延迟 | <500ms* |
