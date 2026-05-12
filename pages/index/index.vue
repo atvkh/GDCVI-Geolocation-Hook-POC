@@ -1,10 +1,11 @@
 <template>
-	<view class="body-container" :class="{ 'theme-guangzhou': currentCampus === 'guangzhou' }" @mousemove="trackMouse" @touchmove="trackMouse">
+	<view class="body-container" :style="themeStyle" @mousemove="trackMouse" @touchmove="trackMouse">
 		
 		<view class="precision-header" v-if="!showWeb">
-			<view class="campus-switch" :class="{ 'campus-guangzhou': currentCampus === 'guangzhou' }" @click="toggleCampus">
-				<text class="material-symbols-outlined campus-icon">swap_horiz</text>
-				<text class="campus-text">{{ currentCampus === 'qingyuan' ? '清远校区' : '广州校区' }}</text>
+			<view class="school-switcher" @click="showSchoolManager = true">
+				<view class="school-switcher-dot" :style="{ background: currentTheme.primary }"></view>
+				<text class="school-switcher-text">{{ currentSchoolName }}</text>
+				<text class="material-symbols-outlined school-switcher-arrow">expand_more</text>
 			</view>
 			<view class="system-indicators">
 				<view class="btn-reset-pill" @click="handleResetApp">
@@ -39,13 +40,36 @@
 				:presetLocations="presetLocations"
 				:selectedPresetIndex="selectedPresetIndex"
 				:selectedPresetName="selectedPresetName"
+				:currentCampusName="currentCampusName"
 				@show-add-preset="showAddPresetModal = true"
 				@edit-preset="editPreset"
 				@select-preset="selectPreset"
 				@back-to-school="backToSchool"
 				@save-coord="handleSaveCoord"
+				@switch-campus="switchCampus"
+				@open-school-manager="showSchoolManager = true"
 			/>
 		</view>
+
+		<!-- 学校管理弹窗 -->
+		<SchoolManager 
+			:visible="showSchoolManager"
+			:schoolList="schoolList"
+			:currentSchoolId="currentSchoolId"
+			@close="showSchoolManager = false"
+			@select="handleSelectSchool"
+			@add="handleAddSchool"
+			@edit="handleEditSchool"
+			@delete="handleDeleteSchool"
+		/>
+		
+		<!-- 学校编辑弹窗 -->
+		<SchoolEditor 
+			:visible="showSchoolEditor"
+			:schoolData="editingSchool"
+			@close="showSchoolEditor = false"
+			@save="handleSaveSchool"
+		/>
 
 		<!-- 预设点编辑弹窗 -->
 		<view class="tutorial-overlay" v-if="showAddPresetModal || showEditPresetModal" @click="closePresetModal">
@@ -201,24 +225,26 @@
 import TabHome from '@/components/TabHome.vue';
 import TabHistory from '@/components/TabHistory.vue';
 import TabSettings from '@/components/TabSettings.vue';
+import SchoolManager from '@/components/SchoolManager.vue';
+import SchoolEditor from '@/components/SchoolEditor.vue';
 import { generateCoreScript } from '@/utils/injectScript.js';
 import { 
 	APP_VERSION, APP_VERSION_CODE, UPDATE_JSON_URL,
-	DEFAULT_LAT, DEFAULT_LNG, INJECT_MAX_ATTEMPTS, 
-	INJECT_INTERVAL_MS, MAX_HISTORY_RECORDS, PRESET_LOCATIONS,
-	QINGYUAN_PRESETS, GUANGZHOU_PRESETS
+	INJECT_MAX_ATTEMPTS, INJECT_INTERVAL_MS, MAX_HISTORY_RECORDS,
+	THEME_COLORS, getSchoolList, saveSchoolList, 
+	getCurrentSchoolId, saveCurrentSchoolId,
+	getCurrentCampusIndex, saveCurrentCampusIndex
 } from '@/utils/constants.js';
 
 export default {
-	components: { TabHome, TabHistory, TabSettings },
+	components: { TabHome, TabHistory, TabSettings, SchoolManager, SchoolEditor },
 	data() {
 		return {
 			appVersion: APP_VERSION,
 			showWeb: false, currentUrl: '', hookStatus: 'inactive',
 			isGenerating: false, loadingText: '', mouseX: 0, mouseY: 0,
 			useRandomPreset: uni.getStorageSync('useRandomPreset') !== false,
-			fakeLat: uni.getStorageSync('fakeLat') ? parseFloat(uni.getStorageSync('fakeLat')) : DEFAULT_LAT,
-			fakeLng: uni.getStorageSync('fakeLng') ? parseFloat(uni.getStorageSync('fakeLng')) : DEFAULT_LNG,
+			fakeLat: 0, fakeLng: 0,
 			historyList: uni.getStorageSync('historyList') || [],
 			buttonSelector: '.adm-button-primary',
 			showUpdateModal: false,
@@ -230,21 +256,69 @@ export default {
 			timerRef: null,
 			showTutorialSheet: false,
 			activeTab: 0,
-			localLat: uni.getStorageSync('fakeLat') ? String(uni.getStorageSync('fakeLat')) : String(DEFAULT_LAT),
-			localLng: uni.getStorageSync('fakeLng') ? String(uni.getStorageSync('fakeLng')) : String(DEFAULT_LNG),
-			currentCampus: uni.getStorageSync('currentCampus') || 'qingyuan',
-			presetLocations: uni.getStorageSync('currentCampus') === 'guangzhou' ? GUANGZHOU_PRESETS : QINGYUAN_PRESETS,
+			localLat: '0', localLng: '0',
 			selectedPresetIndex: -1,
 			selectedPresetName: '',
 			showAddPresetModal: false,
 			showEditPresetModal: false,
 			editingPresetIndex: -1,
-			editingPreset: { name: '', lat: '', lng: '' }
+			editingPreset: { name: '', lat: '', lng: '' },
+			// 学校管理相关
+			showSchoolManager: false,
+			showSchoolEditor: false,
+			schoolList: [],
+			currentSchoolId: '',
+			currentCampusIndex: 0,
+			editingSchool: null
 		}
 	},
-	computed: {},
+	computed: {
+		currentSchool() {
+			return this.schoolList.find(s => s.id === this.currentSchoolId) || this.schoolList[0];
+		},
+		currentSchoolName() {
+			return this.currentSchool ? this.currentSchool.name : '未选择学校';
+		},
+		currentCampus() {
+			if (!this.currentSchool || !this.currentSchool.campuses) return null;
+			return this.currentSchool.campuses[this.currentCampusIndex] || this.currentSchool.campuses[0];
+		},
+		currentCampusName() {
+			return this.currentCampus ? this.currentCampus.name : '';
+		},
+		currentTheme() {
+			const themeIndex = this.currentSchool ? (this.currentSchool.themeIndex || 0) : 0;
+			return THEME_COLORS[themeIndex] || THEME_COLORS[0];
+		},
+		themeStyle() {
+			const theme = this.currentTheme;
+			return {
+				'--color-primary': theme.primary,
+				'--color-primary-soft': theme.primarySoft,
+				'--color-bg-dark': theme.bgDark,
+				'--color-bg-base': theme.bgBase,
+				'--color-bg-gradient': theme.bgGradient,
+				'--color-border': theme.border,
+				'--color-border-light': theme.borderLight,
+				'--glass-bg': theme.glassBg,
+				'--glass-bg-thick': theme.glassBgThick,
+				'--glass-shadow': theme.glassShadow
+			};
+		},
+		presetLocations() {
+			return this.currentCampus ? this.currentCampus.presets : [];
+		},
+		defaultCoords() {
+			if (this.presetLocations.length > 0) {
+				return { lat: this.presetLocations[0].lat, lng: this.presetLocations[0].lng };
+			}
+			return { lat: 23.73513, lng: 113.088972 };
+		}
+	},
 	onBackPress() {
 		if (this.showWeb) { this.handleResetApp(); return true; }
+		if (this.showSchoolManager) { this.showSchoolManager = false; return true; }
+		if (this.showSchoolEditor) { this.showSchoolEditor = false; return true; }
 		if (this.activeTab !== 0) { this.activeTab = 0; return true; }
 		if (this.showTutorialSheet) { this.showTutorialSheet = false; return true; }
 		if (this.$refs.tabHome && this.$refs.tabHome.showMatrix) { this.$refs.tabHome.closeMatrix(); return true; }
@@ -252,6 +326,7 @@ export default {
 		return false; 
 	},
 	created() {
+		this.initSchoolData();
 		this.checkAppUpdate();
 		if (this.useRandomPreset) this.randomizePreset();
 		this.checkWarningModal();
@@ -289,72 +364,90 @@ export default {
 		if (this.timerRef) clearInterval(this.timerRef);
 	},
 	methods: {
+		initSchoolData() {
+			this.schoolList = getSchoolList();
+			this.currentSchoolId = getCurrentSchoolId();
+			this.currentCampusIndex = getCurrentCampusIndex();
+			
+			// 如果没有当前学校，使用第一个
+			if (!this.currentSchool) {
+				this.currentSchoolId = this.schoolList[0].id;
+				saveCurrentSchoolId(this.currentSchoolId);
+			}
+			
+			// 初始化坐标
+			const storedLat = uni.getStorageSync('fakeLat');
+			const storedLng = uni.getStorageSync('fakeLng');
+			if (storedLat && storedLng) {
+				this.fakeLat = parseFloat(storedLat);
+				this.fakeLng = parseFloat(storedLng);
+				this.localLat = String(storedLat);
+				this.localLng = String(storedLng);
+			} else {
+				this.randomizePreset();
+			}
+		},
+		handleSelectSchool(school) {
+			this.currentSchoolId = school.id;
+			this.currentCampusIndex = 0;
+			saveCurrentSchoolId(school.id);
+			saveCurrentCampusIndex(0);
+			this.showSchoolManager = false;
+			this.randomizePreset();
+			uni.showToast({ title: `已切换至${school.name}`, icon: 'none' });
+		},
+		handleAddSchool() {
+			this.editingSchool = null;
+			this.showSchoolManager = false;
+			this.showSchoolEditor = true;
+		},
+		handleEditSchool(school) {
+			this.editingSchool = school;
+			this.showSchoolManager = false;
+			this.showSchoolEditor = true;
+		},
+		handleDeleteSchool(school, index) {
+			this.schoolList.splice(index, 1);
+			saveSchoolList(this.schoolList);
+			
+			// 如果删除的是当前学校，切换到第一个
+			if (school.id === this.currentSchoolId) {
+				this.currentSchoolId = this.schoolList[0].id;
+				saveCurrentSchoolId(this.currentSchoolId);
+				this.randomizePreset();
+			}
+			
+			uni.showToast({ title: '已删除', icon: 'none' });
+		},
+		handleSaveSchool(schoolData) {
+			const existIndex = this.schoolList.findIndex(s => s.id === schoolData.id);
+			if (existIndex !== -1) {
+				this.schoolList[existIndex] = schoolData;
+			} else {
+				this.schoolList.push(schoolData);
+			}
+			saveSchoolList(this.schoolList);
+			this.showSchoolEditor = false;
+			uni.showToast({ title: '保存成功', icon: 'none' });
+		},
+		switchCampus() {
+			if (!this.currentSchool || !this.currentSchool.campuses) return;
+			const campusCount = this.currentSchool.campuses.length;
+			if (campusCount <= 1) return;
+			
+			this.currentCampusIndex = (this.currentCampusIndex + 1) % campusCount;
+			saveCurrentCampusIndex(this.currentCampusIndex);
+			this.randomizePreset();
+			
+			uni.showToast({ 
+				title: `已切换至${this.currentCampusName}`, 
+				icon: 'none' 
+			});
+		},
 		noop() {},
 		switchTab(index) {
 			this.activeTab = index;
 			this.showTutorialSheet = false;
-		},
-		editPreset(index) {
-			this.editingPresetIndex = index;
-			this.editingPreset = { ...this.presetLocations[index] };
-			this.showEditPresetModal = true;
-		},
-		closePresetModal() {
-			this.showAddPresetModal = false;
-			this.showEditPresetModal = false;
-			this.editingPresetIndex = -1;
-			this.editingPreset = { name: '', lat: '', lng: '' };
-		},
-		savePreset() {
-			const name = this.editingPreset.name.trim();
-			const lat = parseFloat(this.editingPreset.lat);
-			const lng = parseFloat(this.editingPreset.lng);
-			
-			if (!name || isNaN(lat) || isNaN(lng)) {
-				uni.showToast({ title: '请填写完整信息', icon: 'none' });
-				return;
-			}
-			
-			if (this.showEditPresetModal) {
-				this.presetLocations[this.editingPresetIndex] = { name, lat, lng };
-			} else {
-				this.presetLocations.push({ name, lat, lng });
-			}
-			
-			const storageKey = this.currentCampus === 'guangzhou' ? 'guangzhou_presets' : 'qingyuan_presets';
-			uni.setStorageSync(storageKey, this.presetLocations);
-			
-			this.closePresetModal();
-			uni.showToast({ title: '保存成功', icon: 'none' });
-		},
-		deletePreset() {
-			if (this.presetLocations.length <= 1) {
-				uni.showToast({ title: '至少保留一个预设点', icon: 'none' });
-				return;
-			}
-			
-			this.presetLocations.splice(this.editingPresetIndex, 1);
-			
-			const storageKey = this.currentCampus === 'guangzhou' ? 'guangzhou_presets' : 'qingyuan_presets';
-			uni.setStorageSync(storageKey, this.presetLocations);
-			
-			if (this.selectedPresetIndex === this.editingPresetIndex) {
-				this.selectedPresetIndex = -1;
-				this.selectedPresetName = '';
-			}
-			
-			this.closePresetModal();
-			uni.showToast({ title: '已删除', icon: 'none' });
-		},
-		toggleCampus() {
-			this.currentCampus = this.currentCampus === 'qingyuan' ? 'guangzhou' : 'qingyuan';
-			uni.setStorageSync('currentCampus', this.currentCampus);
-			this.presetLocations = this.currentCampus === 'guangzhou' ? GUANGZHOU_PRESETS : QINGYUAN_PRESETS;
-			this.randomizePreset();
-			uni.showToast({ 
-				title: `已切换至${this.currentCampus === 'qingyuan' ? '清远' : '广州'}校区`, 
-				icon: 'none' 
-			});
 		},
 		startClock() {
 			this.timerRef = setInterval(() => {
@@ -402,6 +495,55 @@ export default {
 			uni.setStorageSync('fakeLng', this.fakeLng);
 			uni.setStorageSync('useRandomPreset', false);
 			uni.showToast({ title: '配置已更新', icon: 'none' });
+		},
+		editPreset(index) {
+			this.editingPresetIndex = index;
+			this.editingPreset = { ...this.presetLocations[index] };
+			this.showEditPresetModal = true;
+		},
+		closePresetModal() {
+			this.showAddPresetModal = false;
+			this.showEditPresetModal = false;
+			this.editingPresetIndex = -1;
+			this.editingPreset = { name: '', lat: '', lng: '' };
+		},
+		savePreset() {
+			const name = this.editingPreset.name.trim();
+			const lat = parseFloat(this.editingPreset.lat);
+			const lng = parseFloat(this.editingPreset.lng);
+			
+			if (!name || isNaN(lat) || isNaN(lng)) {
+				uni.showToast({ title: '请填写完整信息', icon: 'none' });
+				return;
+			}
+			
+			// 保存到当前校区
+			if (this.showEditPresetModal) {
+				this.currentCampus.presets[this.editingPresetIndex] = { name, lat, lng };
+			} else {
+				this.currentCampus.presets.push({ name, lat, lng });
+			}
+			
+			saveSchoolList(this.schoolList);
+			this.closePresetModal();
+			uni.showToast({ title: '保存成功', icon: 'none' });
+		},
+		deletePreset() {
+			if (this.currentCampus.presets.length <= 1) {
+				uni.showToast({ title: '至少保留一个预设点', icon: 'none' });
+				return;
+			}
+			
+			this.currentCampus.presets.splice(this.editingPresetIndex, 1);
+			saveSchoolList(this.schoolList);
+			
+			if (this.selectedPresetIndex === this.editingPresetIndex) {
+				this.selectedPresetIndex = -1;
+				this.selectedPresetName = '';
+			}
+			
+			this.closePresetModal();
+			uni.showToast({ title: '已删除', icon: 'none' });
 		},
 		openGithub() {
 			const url = 'https://github.com/atvkh/GDCVI-Geolocation-Hook-POC';
@@ -467,6 +609,8 @@ export default {
 			uni.showToast({ title: '环境重置，坐标已随机切换', icon: 'none' }); 
 		},
 		randomizePreset() {
+			if (this.presetLocations.length === 0) return;
+			
 			const randomIndex = Math.floor(Math.random() * this.presetLocations.length);
 			const randomLoc = this.presetLocations[randomIndex];
 			this.fakeLat = randomLoc.lat;
@@ -488,7 +632,7 @@ export default {
 		},
 		startAggressiveInjection() {
 			// #ifdef APP-PLUS
-			const coreScript = generateCoreScript(this.fakeLat, this.fakeLng, this.buttonSelector, DEFAULT_LAT, DEFAULT_LNG);
+			const coreScript = generateCoreScript(this.fakeLat, this.fakeLng, this.buttonSelector, this.defaultCoords.lat, this.defaultCoords.lng);
 			
 			if (this.persistentInjectTimer) {
 				clearInterval(this.persistentInjectTimer);
@@ -526,4 +670,46 @@ export default {
 
 <style>
 @import '@/static/css/global.css';
+
+/* 学校选择器样式 */
+.school-switcher {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 16px;
+	border-radius: 20px;
+	background: linear-gradient(135deg, rgba(0, 80, 150, 0.3) 0%, rgba(0, 60, 120, 0.4) 100%);
+	backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+	border: 1px solid rgba(80, 140, 220, 0.3);
+	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: 0 2px 8px rgba(0, 40, 80, 0.3), inset 0 1px 0 rgba(120, 180, 255, 0.15);
+}
+
+.school-switcher:active { 
+	transform: scale(0.95); 
+}
+
+.school-switcher-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.school-switcher-text {
+	font-size: 13px;
+	font-weight: 600;
+	color: rgba(200, 225, 255, 0.95);
+	letter-spacing: 0.5px;
+	max-width: 150px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.school-switcher-arrow {
+	font-size: 18px;
+	color: rgba(140, 200, 255, 0.7);
+}
 </style>

@@ -10,7 +10,7 @@
 
 <br>
 
-[![Version](https://img.shields.io/badge/version-11.0.0-blue.svg?style=for-the-badge)](https://github.com/atvkh/GDCVI-Geolocation-Hook-POC)
+[![Version](https://img.shields.io/badge/version-11.1.0-blue.svg?style=for-the-badge)](https://github.com/atvkh/GDCVI-Geolocation-Hook-POC)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-00d4ff?style=for-the-badge)]()
 [![Framework](https://img.shields.io/badge/Vue-3.x-42b883?style=for-the-badge)](https://vuejs.org/)
 [![Uni-App](https://img.shields.io/badge/Uni--App-V3-2B9939?style=for-the-badge)](https://uniapp.dcloud.io/)
@@ -110,6 +110,15 @@ const proxyToString = new Proxy(Function.prototype.toString, {
 });
 ```
 
+### 🏫 多学校管理
+
+支持自定义添加学校，每所学校独立配置：
+- 学校名称
+- 最多 3 个校区
+- 每个校区独立预设点管理
+- 8 种主题色可选
+- 内置坐标拾取器链接
+
 ---
 
 ## 技术架构
@@ -150,34 +159,6 @@ const proxyToString = new Proxy(Function.prototype.toString, {
                     └──────────────────────────────────┘
 ```
 
-### 数据流架构
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│                      Data Flow Architecture                     │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐   │
-│   │ User    │───>│ WebView │───>│ Hook    │───>│ Fake    │   │
-│   │ Action  │    │ Load    │    │ Inject  │    │ Coords  │   │
-│   └─────────┘    └─────────┘    └─────────┘    └─────────┘   │
-│        │              │              │              │          │
-│        v              v              v              v          │
-│   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐   │
-│   │ Extract │    │ evalJS  │    │ Proxy   │    │ Success │   │
-│   │ URL     │    │ Burst   │    │ Apply   │    │ Result  │   │
-│   └─────────┘    └─────────┘    └─────────┘    └─────────┘   │
-│                                                                │
-│   ─────────────────────────────────────────────────────────   │
-│                                                                │
-│   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐   │
-│   │ XHR     │───>│ Response│───>│ Parse   │───>│ Toast   │   │
-│   │ Send    │    │ Capture │    │ Result  │    │ Display │   │
-│   └─────────┘    └─────────┘    └─────────┘    └─────────┘   │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
-```
-
 ---
 
 ## 项目结构
@@ -190,7 +171,9 @@ PhantomSign/
 ├── 📁 components/
 │   ├── 📄 TabHome.vue                # 首页组件 - 打卡操作 & 矩阵库
 │   ├── 📄 TabHistory.vue             # 历史记录组件 - 签到状态追踪
-│   └── 📄 TabSettings.vue            # 设置组件 - 坐标配置管理
+│   ├── 📄 TabSettings.vue            # 设置组件 - 坐标配置管理
+│   ├── 📄 SchoolManager.vue          # 学校管理组件
+│   └── 📄 SchoolEditor.vue           # 学校编辑组件
 ├── 📁 utils/
 │   ├── 📄 constants.js               # 常量配置中心
 │   └── 📄 injectScript.js            # Hook 脚本生成器
@@ -275,23 +258,6 @@ git clone https://github.com/atvkh/GDCVI-Geolocation-Hook-POC.git
 #    发行 → 原生App-云打包 → 配置签名 → 打包
 ```
 
-### 配置说明
-
-编辑 `utils/constants.js` 自定义配置：
-
-```javascript
-// 预设坐标点
-export const QINGYUAN_PRESETS = [
-    { name: '预设点1', lat: 23.73513, lng: 113.088972 },
-    // ...
-];
-
-// 注入参数
-export const INJECT_MAX_ATTEMPTS = 150;  // 最大重试次数
-export const INJECT_INTERVAL_MS = 20;    // 重试间隔 (ms)
-export const MAX_HISTORY_RECORDS = 15;   // 历史记录上限
-```
-
 ---
 
 ## 功能详解
@@ -322,13 +288,35 @@ export const MAX_HISTORY_RECORDS = 15;   // 历史记录上限
 | 预设点管理 | 下拉选择 + 长按编辑 |
 | 双模式 | 随机预设点 / 锁定坐标 |
 | 自定义预设 | 新增/编辑/删除预设点 |
-| 校区切换 | 清远/广州一键切换 |
+| 校区切换 | 一键切换校区 |
+| 学校管理 | 添加/编辑/删除学校 |
+
+### 🏫 学校管理
+
+| 功能 | 描述 |
+|:---|:---|
+| 添加学校 | 自定义学校名称、校区、预设点 |
+| 编辑学校 | 修改学校信息和预设点 |
+| 删除学校 | 删除自定义学校（预置学校不可删） |
+| 主题色 | 8 种主题色可选 |
+| 坐标拾取 | 内置腾讯地图坐标拾取器链接 |
 
 ---
 
 ## 版本记录
 
-### v11.0.0 (当前版本)
+### v11.1.0 (当前版本)
+
+```
+✦ 新增多学校管理功能
+✦ 支持自定义添加/编辑/删除学校
+✦ 每所学校支持最多 3 个校区
+✦ 8 种主题色可选，动态切换
+✦ 内置腾讯地图坐标拾取器链接
+✦ 优化校区切换交互
+```
+
+### v11.0.0
 
 ```
 ✦ 修复 weekCount 计算逻辑 bug
@@ -355,8 +343,8 @@ export const MAX_HISTORY_RECORDS = 15;   // 历史记录上限
 
 | 指标 | 数值 |
 |:---|:---|
-| 代码文件数 | 13 |
-| 总代码行数 | ~2,900 |
+| 代码文件数 | 15 |
+| 总代码行数 | ~3,500 |
 | npm 依赖数 | 0 |
 | 包体积 | ~17.7 MB |
 | 注入成功率 | 99.2%* |

@@ -54,6 +54,7 @@ page { background: var(--color-bg-dark); }
 	padding-bottom: 80px;
 	position: relative; overflow-y: auto; overflow-x: hidden; z-index: 1;
 	-webkit-overflow-scrolling: touch;
+	transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .body-container::before {
 	content: ''; position: fixed; top: -30%; left: -30%; right: -30%; bottom: -30%; width: 160%; height: 160%;
@@ -69,28 +70,6 @@ page { background: var(--color-bg-dark); }
 	33% { transform: translate(2%, -3%) scale(1.02) rotate(1deg); }
 	66% { transform: translate(-2%, 2%) scale(0.98) rotate(-1deg); }
 	100% { transform: translate(3%, 5%) scale(1.05) rotate(0.5deg); } 
-}
-
-/* 广州校区主题 - 紫色调 */
-.theme-guangzhou {
-	--color-primary: rgb(140, 80, 200);
-	--color-primary-soft: rgba(140, 80, 200, 0.3);
-	--color-bg-dark: #100818;
-	--color-bg-base: #140a20;
-	--color-bg-gradient: linear-gradient(145deg, #100818 0%, #1a1030 50%, #140a20 100%);
-	--color-border: rgba(120, 80, 180, 0.3);
-	--color-border-light: rgba(140, 100, 200, 0.2);
-	--glass-bg: rgba(30, 15, 50, 0.6);
-	--glass-bg-thick: rgba(40, 20, 65, 0.7);
-	--glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(180, 140, 240, 0.1);
-	transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.theme-guangzhou::before {
-	background: 
-		radial-gradient(ellipse at 25% 20%, rgba(120, 60, 180, 0.15) 0%, transparent 50%),
-		radial-gradient(ellipse at 75% 80%, rgba(100, 40, 160, 0.1) 0%, transparent 45%),
-		radial-gradient(ellipse at 50% 50%, rgba(80, 30, 140, 0.08) 0%, transparent 60%);
-	transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .main-content { margin-top: 0; width: 100%; display: flex; flex-direction: column; align-items: center; position: relative; padding: 0; box-sizing: border-box; }
@@ -115,49 +94,6 @@ page { background: var(--color-bg-dark); }
 .btn-reset-pill .material-symbols-outlined { font-size: 16px; transition: all 0.3s; }
 .reset-pill-text { font-size: 11px; font-weight: 700; letter-spacing: 1px; }
 .btn-reset-pill:active { background: rgba(220,38,38,0.25); color: #ef5350; border-color: rgba(220,38,38,0.6); filter: drop-shadow(0 0 10px rgba(220,38,38,0.5)); transform: scale(0.92); }
-
-/* 校区切换按钮 - 清远校区（蓝色） */
-.campus-switch {
-	display: flex; align-items: center; gap: 6px;
-	padding: 8px 16px;
-	border-radius: 20px;
-	background: linear-gradient(135deg, rgba(0, 80, 150, 0.3) 0%, rgba(0, 60, 120, 0.4) 100%);
-	backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-	border: 1px solid rgba(80, 140, 220, 0.3);
-	cursor: pointer;
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	box-shadow: 0 2px 8px rgba(0, 40, 80, 0.3), inset 0 1px 0 rgba(120, 180, 255, 0.15);
-}
-.campus-switch:active { 
-	transform: scale(0.95); 
-	background: linear-gradient(135deg, rgba(0, 80, 150, 0.4) 0%, rgba(0, 60, 120, 0.5) 100%);
-}
-.campus-icon {
-	font-size: 18px;
-	color: rgba(140, 200, 255, 0.9);
-}
-.campus-text {
-	font-size: 12px;
-	font-weight: 600;
-	color: rgba(200, 225, 255, 0.95);
-	letter-spacing: 0.5px;
-}
-
-/* 校区切换按钮 - 广州校区（紫色） */
-.campus-switch.campus-guangzhou {
-	background: linear-gradient(135deg, rgba(120, 60, 180, 0.3) 0%, rgba(100, 40, 160, 0.4) 100%);
-	border: 1px solid rgba(160, 100, 220, 0.3);
-	box-shadow: 0 2px 8px rgba(60, 20, 100, 0.3), inset 0 1px 0 rgba(200, 160, 255, 0.15);
-}
-.campus-switch.campus-guangzhou:active { 
-	background: linear-gradient(135deg, rgba(120, 60, 180, 0.4) 0%, rgba(100, 40, 160, 0.5) 100%);
-}
-.campus-switch.campus-guangzhou .campus-icon {
-	color: rgba(200, 160, 255, 0.9);
-}
-.campus-switch.campus-guangzhou .campus-text {
-	color: rgba(220, 200, 255, 0.95);
-}
 
 /* 教程卡片苹果风格 */
 .tutorial-overlay {
@@ -257,9 +193,9 @@ page { background: var(--color-bg-dark); }
 	width: 100%;
 	height: 52px;
 	border-radius: 20px;
-	background: linear-gradient(180deg, rgba(0, 80, 150, 0.5) 0%, rgba(0, 60, 120, 0.6) 100%);
+	background: linear-gradient(180deg, var(--color-primary-soft) 0%, rgba(0, 60, 120, 0.6) 100%);
 	backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-	border: 1px solid rgba(80, 140, 220, 0.3);
+	border: 1px solid var(--color-border);
 	color: #fff;
 	font-size: 16px;
 	font-weight: 600;
@@ -399,7 +335,7 @@ page { background: var(--color-bg-dark); }
 	position: absolute;
 	width: 64px;
 	height: calc(100% - 12px);
-	background: linear-gradient(180deg, rgba(0, 100, 180, 0.4) 0%, rgba(0, 70, 140, 0.5) 100%);
+	background: linear-gradient(180deg, var(--color-primary-soft) 0%, rgba(0, 70, 140, 0.5) 100%);
 	border-radius: 44px;
 	left: 6px;
 	top: 6px;
@@ -484,7 +420,7 @@ page { background: var(--color-bg-dark); }
 }
 .page-card-icon {
 	font-size: 24px;
-	color: rgb(0, 95, 156);
+	color: var(--color-primary);
 }
 .page-card-title {
 	font-size: 20px;

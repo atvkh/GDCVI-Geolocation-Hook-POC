@@ -5,6 +5,15 @@
 			<text class="page-card-title">坐标配置</text>
 		</view>
 		<view class="settings-scroll-area">
+			<!-- 当前校区显示 -->
+			<view class="settings-field">
+				<text class="settings-label">当前校区</text>
+				<view class="campus-display" @click="$emit('switch-campus')">
+					<text class="campus-display-text">{{ currentCampusName }}</text>
+					<text class="material-symbols-outlined campus-display-icon">swap_horiz</text>
+				</view>
+			</view>
+			
 			<view class="settings-field">
 				<text class="settings-label">目标纬度 (Lat)</text>
 				<view class="settings-input-wrapper">
@@ -65,6 +74,16 @@
 			</view>
 
 			<view class="settings-divider"></view>
+			
+			<!-- 学校管理入口 -->
+			<view class="settings-school-btn" @click="$emit('open-school-manager')">
+				<text class="material-symbols-outlined">school</text>
+				<text class="settings-school-btn-text">学校管理</text>
+				<text class="material-symbols-outlined">chevron_right</text>
+			</view>
+			
+			<view class="settings-divider"></view>
+			
 			<view class="settings-footer">
 				<view class="settings-footer-btn" @click="openGithub">
 					<text class="material-symbols-outlined" style="font-size: 18px;">code</text>
@@ -80,8 +99,6 @@
 </template>
 
 <script>
-import { DEFAULT_LAT, DEFAULT_LNG } from '@/utils/constants.js';
-
 export default {
 	props: {
 		isActive: { type: Boolean, default: false },
@@ -90,7 +107,8 @@ export default {
 		useRandomPreset: { type: Boolean, default: true },
 		presetLocations: { type: Array, default: () => [] },
 		selectedPresetIndex: { type: Number, default: -1 },
-		selectedPresetName: { type: String, default: '' }
+		selectedPresetName: { type: String, default: '' },
+		currentCampusName: { type: String, default: '' }
 	},
 	data() {
 		return {
@@ -194,7 +212,7 @@ export default {
 }
 .page-card-icon {
 	font-size: 24px;
-	color: rgb(0, 95, 156);
+	color: var(--color-primary);
 }
 .page-card-title {
 	font-size: 20px;
@@ -230,9 +248,9 @@ export default {
 	flex: 1;
 }
 .settings-input-wrapper:focus-within {
-	border-color: rgb(0, 95, 156);
+	border-color: var(--color-primary);
 	background: rgba(20, 40, 75, 0.7);
-	box-shadow: 0 0  0 3px rgba(0, 95, 156, 0.3);
+	box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 .settings-input {
 	background: transparent;
@@ -317,13 +335,13 @@ export default {
 	border-radius: 16px;
 	font-size: 15px;
 	font-weight: 600;
-	background: linear-gradient(180deg, rgba(0, 95, 156, 0.3) 0%, rgba(0, 60, 120, 0.6) 100%);
+	background: linear-gradient(180deg, var(--color-primary-soft) 0%, rgba(0, 60, 120, 0.6) 100%);
 	backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-	border: 1px solid rgba(50, 80, 130, 0.3);
+	border: 1px solid var(--color-border);
 	color: #ffffff;
 	display: flex; align-items: center; justify-content: center;
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(100, 150, 220, 0.1);
+	box-shadow: var(--glass-shadow);
 	box-sizing: border-box;
 }
 .btn-settings-primary:active { transform: scale(0.98); }
@@ -343,6 +361,66 @@ export default {
 }
 .btn-settings-secondary:active { transform: scale(0.98); background: rgba(20, 40, 75, 0.5); }
 .settings-divider { height: 1px; background: rgba(255, 255, 255, 0.06); margin: 16px 0; }
+
+/* 学校管理按钮 */
+.settings-school-btn {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 16px;
+	background: rgba(var(--color-primary-rgb, 0, 95, 156), 0.05);
+	border: 1px solid rgba(var(--color-primary-rgb, 0, 95, 156), 0.15);
+	border-radius: 14px;
+	margin-bottom: 16px;
+	transition: all 0.3s;
+}
+
+.settings-school-btn:active {
+	background: rgba(var(--color-primary-rgb, 0, 95, 156), 0.1);
+}
+
+.settings-school-btn .material-symbols-outlined {
+	font-size: 20px;
+	color: var(--color-primary);
+}
+
+.settings-school-btn-text {
+	flex: 1;
+	font-size: 15px;
+	font-weight: 500;
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.settings-school-btn .material-symbols-outlined:last-child {
+	color: rgba(255, 255, 255, 0.3);
+}
+
+/* 校区显示 */
+.campus-display {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 16px;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 14px;
+	transition: all 0.3s;
+}
+
+.campus-display:active {
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.campus-display-text {
+	font-size: 15px;
+	color: rgba(255, 255, 255, 0.85);
+}
+
+.campus-display-icon {
+	font-size: 20px;
+	color: var(--color-primary);
+}
+
 .settings-footer { display: flex; gap: 12px; }
 .settings-footer-btn {
 	flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
