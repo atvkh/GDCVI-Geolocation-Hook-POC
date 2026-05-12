@@ -26,18 +26,37 @@
 				<!-- 主题色选择 -->
 				<view class="editor-section">
 					<text class="editor-label">主题色</text>
-					<view class="theme-grid">
-						<view 
-							v-for="(theme, index) in themeColors" 
-							:key="index"
-							class="theme-item"
-							:class="{ 'theme-item-active': formData.themeIndex === index }"
-							@click="formData.themeIndex = index"
-						>
-							<view class="theme-dot" :style="{ background: theme.primary }"></view>
-							<text class="theme-name">{{ theme.name }}</text>
+					<view class="theme-dropdown" @click="showThemeDropdown = !showThemeDropdown">
+						<view class="theme-dropdown-selected">
+							<view class="theme-dropdown-dot" :style="{ background: themeColors[formData.themeIndex].primary }"></view>
+							<text class="theme-dropdown-text">{{ themeColors[formData.themeIndex].name }}</text>
+							<text class="material-symbols-outlined theme-dropdown-arrow" :class="{ 'dropdown-open': showThemeDropdown }">expand_more</text>
+						</view>
+						<view class="theme-dropdown-list" v-if="showThemeDropdown">
+							<view 
+								v-for="(theme, index) in themeColors" 
+								:key="index"
+								class="theme-dropdown-item"
+								:class="{ 'theme-dropdown-active': formData.themeIndex === index }"
+								@click.stop="selectTheme(index)"
+							>
+								<view class="theme-dropdown-dot" :style="{ background: theme.primary }"></view>
+								<text class="theme-dropdown-item-text">{{ theme.name }}</text>
+								<text class="material-symbols-outlined theme-dropdown-check" v-if="formData.themeIndex === index">check_circle</text>
+							</view>
 						</view>
 					</view>
+				</view>
+				
+				<!-- 链接特征配置 -->
+				<view class="editor-section">
+					<text class="editor-label">链接特征（可选）</text>
+					<input 
+						class="editor-input" 
+						v-model="formData.linkPattern" 
+						placeholder="如：appKey,code（逗号分隔）"
+					/>
+					<text class="editor-hint-text">用于校验链接格式，留空则不校验</text>
 				</view>
 				
 				<!-- 校区管理 -->
@@ -59,6 +78,16 @@
 									v-model="campus.name" 
 									placeholder="校区名称"
 								/>
+								<view class="campus-color-picker">
+									<view 
+										v-for="(color, colorIdx) in campusColors" 
+										:key="colorIdx"
+										class="campus-color-dot"
+										:class="{ 'campus-color-active': campus.colorIndex === colorIdx }"
+										:style="{ background: color.primary }"
+										@click="campus.colorIndex = colorIdx"
+									></view>
+								</view>
 								<view class="campus-delete" @click="deleteCampus(cIndex)" v-if="formData.campuses.length > 1">
 									<text class="material-symbols-outlined">delete</text>
 								</view>
@@ -128,7 +157,7 @@
 </template>
 
 <script>
-import { THEME_COLORS, COORD_PICKER_URL, generateId } from '@/utils/constants.js';
+import { THEME_COLORS, CAMPUS_COLORS, COORD_PICKER_URL, generateId } from '@/utils/constants.js';
 
 export default {
 	props: {
@@ -138,13 +167,17 @@ export default {
 	data() {
 		return {
 			themeColors: THEME_COLORS,
+			campusColors: CAMPUS_COLORS,
+			showThemeDropdown: false,
 			formData: {
 				id: '',
 				name: '',
 				themeIndex: 0,
+				linkPattern: '',
 				campuses: [
 					{
 						name: '主校区',
+						colorIndex: 0,
 						presets: [
 							{ name: '预设点1', lat: '', lng: '' }
 						]
@@ -177,15 +210,21 @@ export default {
 				id: '',
 				name: '',
 				themeIndex: 0,
+				linkPattern: '',
 				campuses: [
 					{
 						name: '主校区',
+						colorIndex: 0,
 						presets: [
 							{ name: '预设点1', lat: '', lng: '' }
 						]
 					}
 				]
 			};
+		},
+		selectTheme(index) {
+			this.formData.themeIndex = index;
+			this.showThemeDropdown = false;
 		},
 		addCampus() {
 			if (this.formData.campuses.length >= 3) {
@@ -194,6 +233,7 @@ export default {
 			}
 			this.formData.campuses.push({
 				name: `校区${this.formData.campuses.length + 1}`,
+				colorIndex: this.formData.campuses.length,
 				presets: [
 					{ name: '预设点1', lat: '', lng: '' }
 				]
@@ -393,43 +433,103 @@ export default {
 	border-color: var(--color-primary);
 }
 
-/* 主题色选择 */
-.theme-grid {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 10px;
+.editor-hint-text {
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.3);
+	margin-top: 6px;
+	display: block;
 }
 
-.theme-item {
+/* 主题色选择 - 下拉框 */
+.theme-dropdown {
+	position: relative;
+}
+
+.theme-dropdown-selected {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	padding: 10px 14px;
-	background: rgba(255, 255, 255, 0.03);
-	border: 1px solid rgba(255, 255, 255, 0.06);
-	border-radius: 10px;
+	gap: 10px;
+	padding: 14px 16px;
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 12px;
 	cursor: pointer;
 	transition: all 0.3s;
 }
 
-.theme-item:active {
+.theme-dropdown-selected:active {
+	background: rgba(0, 0, 0, 0.5);
+}
+
+.theme-dropdown-dot {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.theme-dropdown-text {
+	flex: 1;
+	font-size: 15px;
+	color: rgba(255, 255, 255, 0.85);
+}
+
+.theme-dropdown-arrow {
+	font-size: 20px;
+	color: rgba(255, 255, 255, 0.4);
+	transition: transform 0.3s;
+}
+
+.dropdown-open {
+	transform: rotate(180deg);
+}
+
+.theme-dropdown-list {
+	position: absolute;
+	top: calc(100% + 8px);
+	left: 0;
+	right: 0;
+	background: rgba(20, 20, 25, 0.98);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 12px;
+	max-height: 300px;
+	overflow-y: auto;
+	z-index: 100;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.theme-dropdown-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 14px 16px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+	transition: background 0.2s;
+}
+
+.theme-dropdown-item:last-child {
+	border-bottom: none;
+}
+
+.theme-dropdown-item:active {
 	background: rgba(255, 255, 255, 0.06);
 }
 
-.theme-item-active {
-	border-color: var(--color-primary);
-	background: rgba(var(--color-primary-rgb, 0, 95, 156), 0.1);
+.theme-dropdown-active {
+	background: rgba(255, 255, 255, 0.04);
 }
 
-.theme-dot {
-	width: 16px;
-	height: 16px;
-	border-radius: 50%;
+.theme-dropdown-item-text {
+	flex: 1;
+	font-size: 15px;
+	color: rgba(255, 255, 255, 0.85);
 }
 
-.theme-name {
-	font-size: 12px;
-	color: rgba(255, 255, 255, 0.7);
+.theme-dropdown-check {
+	font-size: 20px;
+	color: #4ade80;
 }
 
 /* 校区管理 */
@@ -462,6 +562,30 @@ export default {
 	padding: 0 12px;
 	font-size: 14px;
 	color: #fff;
+}
+
+.campus-color-picker {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.campus-color-dot {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: all 0.2s;
+	border: 2px solid transparent;
+}
+
+.campus-color-dot:active {
+	transform: scale(0.9);
+}
+
+.campus-color-active {
+	border-color: #fff;
+	box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
 .campus-delete {

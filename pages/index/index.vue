@@ -15,12 +15,39 @@
 			</view>
 		</view>
 
+		<!-- 校区切换 -->
+		<view class="campus-switcher" v-if="!showWeb && currentSchool && currentSchool.campuses.length > 1" @click="handleCampusSwitch">
+			<view class="campus-switcher-inner" :style="campusSwitcherStyle">
+				<text class="material-symbols-outlined campus-switcher-icon" :style="{ color: currentCampusColor.primary }">location_on</text>
+				<text class="campus-switcher-text">{{ currentCampusName }}</text>
+				<text class="material-symbols-outlined campus-switcher-arrow" :style="{ color: currentCampusColor.primary }" v-if="currentSchool.campuses.length === 2">swap_horiz</text>
+				<text class="material-symbols-outlined campus-switcher-arrow" :style="{ color: currentCampusColor.primary }" v-else>expand_more</text>
+			</view>
+		</view>
+		
+		<!-- 校区下拉菜单（3个校区时） -->
+		<view class="campus-dropdown-overlay" v-if="showCampusDropdown" @click="showCampusDropdown = false">
+			<view class="campus-dropdown" @click.stop>
+				<view 
+					v-for="(campus, index) in currentSchool.campuses" 
+					:key="index"
+					class="campus-dropdown-item"
+					:class="{ 'campus-dropdown-active': index === currentCampusIndex }"
+					@click="selectCampus(index)"
+				>
+					<text class="campus-dropdown-name">{{ campus.name }}</text>
+					<text class="material-symbols-outlined campus-dropdown-check" v-if="index === currentCampusIndex">check_circle</text>
+				</view>
+			</view>
+		</view>
+
 		<view class="main-content" v-if="!showWeb">
 			<!-- 首页 -->
 			<view v-show="activeTab === 0" class="page-card home-card page-transition" :class="{ 'page-active': activeTab === 0 }">
 				<TabHome ref="tabHome"
 					:isGenerating="isGenerating" :loadingText="loadingText"
-					:mouseX="mouseX" :mouseY="mouseY" 
+					:mouseX="mouseX" :mouseY="mouseY"
+					:linkPattern="currentSchoolLinkPattern"
 					@start-checkin="handleStartCheckIn"
 					@open-tutorial="showTutorialSheet = true" />
 			</view>
@@ -40,13 +67,11 @@
 				:presetLocations="presetLocations"
 				:selectedPresetIndex="selectedPresetIndex"
 				:selectedPresetName="selectedPresetName"
-				:currentCampusName="currentCampusName"
 				@show-add-preset="showAddPresetModal = true"
 				@edit-preset="editPreset"
 				@select-preset="selectPreset"
 				@back-to-school="backToSchool"
 				@save-coord="handleSaveCoord"
-				@switch-campus="switchCampus"
 				@open-school-manager="showSchoolManager = true"
 			/>
 		</view>
@@ -231,7 +256,7 @@ import { generateCoreScript } from '@/utils/injectScript.js';
 import { 
 	APP_VERSION, APP_VERSION_CODE, UPDATE_JSON_URL,
 	INJECT_MAX_ATTEMPTS, INJECT_INTERVAL_MS, MAX_HISTORY_RECORDS,
-	THEME_COLORS, getSchoolList, saveSchoolList, 
+	THEME_COLORS, CAMPUS_COLORS, getSchoolList, saveSchoolList, 
 	getCurrentSchoolId, saveCurrentSchoolId,
 	getCurrentCampusIndex, saveCurrentCampusIndex
 } from '@/utils/constants.js';
@@ -266,6 +291,7 @@ export default {
 			// 学校管理相关
 			showSchoolManager: false,
 			showSchoolEditor: false,
+			showCampusDropdown: false,
 			schoolList: [],
 			currentSchoolId: '',
 			currentCampusIndex: 0,
@@ -286,9 +312,25 @@ export default {
 		currentCampusName() {
 			return this.currentCampus ? this.currentCampus.name : '';
 		},
+		currentCampusColor() {
+			if (!this.currentCampus) return CAMPUS_COLORS[0];
+			// 如果没有 colorIndex，根据校区索引自动分配
+			const colorIndex = this.currentCampus.colorIndex !== undefined ? this.currentCampus.colorIndex : this.currentCampusIndex;
+			return CAMPUS_COLORS[colorIndex % CAMPUS_COLORS.length] || CAMPUS_COLORS[0];
+		},
+		campusSwitcherStyle() {
+			const color = this.currentCampusColor;
+			return {
+				background: `linear-gradient(135deg, ${color.soft} 0%, ${color.soft} 100%)`,
+				border: `1px solid ${color.primary}`
+			};
+		},
 		currentTheme() {
 			const themeIndex = this.currentSchool ? (this.currentSchool.themeIndex || 0) : 0;
 			return THEME_COLORS[themeIndex] || THEME_COLORS[0];
+		},
+		currentSchoolLinkPattern() {
+			return this.currentSchool ? (this.currentSchool.linkPattern || '') : '';
 		},
 		themeStyle() {
 			const theme = this.currentTheme;
@@ -430,15 +472,29 @@ export default {
 			this.showSchoolEditor = false;
 			uni.showToast({ title: '保存成功', icon: 'none' });
 		},
-		switchCampus() {
+		handleCampusSwitch() {
 			if (!this.currentSchool || !this.currentSchool.campuses) return;
 			const campusCount = this.currentSchool.campuses.length;
 			if (campusCount <= 1) return;
 			
-			this.currentCampusIndex = (this.currentCampusIndex + 1) % campusCount;
-			saveCurrentCampusIndex(this.currentCampusIndex);
+			// 2个校区直接切换，3个校区显示下拉
+			if (campusCount === 2) {
+				this.currentCampusIndex = (this.currentCampusIndex + 1) % 2;
+				saveCurrentCampusIndex(this.currentCampusIndex);
+				this.randomizePreset();
+				uni.showToast({ 
+					title: `已切换至${this.currentCampusName}`, 
+					icon: 'none' 
+				});
+			} else {
+				this.showCampusDropdown = true;
+			}
+		},
+		selectCampus(index) {
+			this.currentCampusIndex = index;
+			saveCurrentCampusIndex(index);
+			this.showCampusDropdown = false;
 			this.randomizePreset();
-			
 			uni.showToast({ 
 				title: `已切换至${this.currentCampusName}`, 
 				icon: 'none' 
@@ -711,5 +767,122 @@ export default {
 .school-switcher-arrow {
 	font-size: 18px;
 	color: rgba(140, 200, 255, 0.7);
+}
+
+/* 校区切换样式 */
+.campus-switcher {
+	width: 88%;
+	margin: 0 auto 16px;
+}
+
+.campus-switcher-inner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 14px 24px;
+	border-radius: 18px;
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: 
+		0 4px 20px rgba(0, 0, 0, 0.3),
+		inset 0 1px 0 rgba(255, 255, 255, 0.08);
+	position: relative;
+	overflow: hidden;
+}
+
+.campus-switcher-inner::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 50%;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 100%);
+	border-radius: 18px 18px 0 0;
+	pointer-events: none;
+}
+
+.campus-switcher-inner:active {
+	transform: scale(0.97);
+	opacity: 0.9;
+}
+
+.campus-switcher-icon {
+	font-size: 20px;
+}
+
+.campus-switcher-text {
+	font-size: 15px;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.95);
+	letter-spacing: 0.5px;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.campus-switcher-arrow {
+	font-size: 22px;
+	transition: transform 0.3s;
+}
+
+/* 校区下拉菜单 */
+.campus-dropdown-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.4);
+	backdrop-filter: blur(4px);
+	-webkit-backdrop-filter: blur(4px);
+	z-index: 998;
+}
+
+.campus-dropdown {
+	position: absolute;
+	top: 140px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 88%;
+	background: rgba(12, 25, 50, 0.98);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(60, 100, 160, 0.25);
+	border-radius: 14px;
+	overflow: hidden;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.campus-dropdown-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+	transition: background 0.2s;
+}
+
+.campus-dropdown-item:last-child {
+	border-bottom: none;
+}
+
+.campus-dropdown-item:active {
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.campus-dropdown-active {
+	background: rgba(var(--color-primary-rgb, 0, 95, 156), 0.1);
+}
+
+.campus-dropdown-name {
+	font-size: 15px;
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.campus-dropdown-check {
+	font-size: 20px;
+	color: #4ade80;
 }
 </style>

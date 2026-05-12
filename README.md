@@ -268,7 +268,6 @@ git clone https://github.com/atvkh/GDCVI-Geolocation-Hook-POC.git
 |:---|:---|
 | 链接输入 | 支持手动输入或剪贴板提取 |
 | 矩阵库 | 多人员链接管理，支持 CRUD 操作 |
-| 安全探针 | 实时显示设备指纹掩码与坐标扰动状态 |
 | 极速打卡 | 一键触发注入与签到流程 |
 
 ### 📊 历史记录 · TabHistory
@@ -299,6 +298,7 @@ git clone https://github.com/atvkh/GDCVI-Geolocation-Hook-POC.git
 | 编辑学校 | 修改学校信息和预设点 |
 | 删除学校 | 删除自定义学校（预置学校不可删） |
 | 主题色 | 8 种主题色可选 |
+| 校区颜色 | 不同校区可配置不同颜色区分 |
 | 坐标拾取 | 内置腾讯地图坐标拾取器链接 |
 
 ---
@@ -312,8 +312,11 @@ git clone https://github.com/atvkh/GDCVI-Geolocation-Hook-POC.git
 ✦ 支持自定义添加/编辑/删除学校
 ✦ 每所学校支持最多 3 个校区
 ✦ 8 种主题色可选，动态切换
+✦ 校区颜色区分功能
 ✦ 内置腾讯地图坐标拾取器链接
+✦ 移除虚假的安全探针面板
 ✦ 优化校区切换交互
+✦ 修复矩阵库维护界面显示问题
 ```
 
 ### v11.0.0

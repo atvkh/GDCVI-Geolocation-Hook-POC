@@ -5,15 +5,6 @@
 			<text class="page-card-title">坐标配置</text>
 		</view>
 		<view class="settings-scroll-area">
-			<!-- 当前校区显示 -->
-			<view class="settings-field">
-				<text class="settings-label">当前校区</text>
-				<view class="campus-display" @click="$emit('switch-campus')">
-					<text class="campus-display-text">{{ currentCampusName }}</text>
-					<text class="material-symbols-outlined campus-display-icon">swap_horiz</text>
-				</view>
-			</view>
-			
 			<view class="settings-field">
 				<text class="settings-label">目标纬度 (Lat)</text>
 				<view class="settings-input-wrapper">
@@ -75,15 +66,6 @@
 
 			<view class="settings-divider"></view>
 			
-			<!-- 学校管理入口 -->
-			<view class="settings-school-btn" @click="$emit('open-school-manager')">
-				<text class="material-symbols-outlined">school</text>
-				<text class="settings-school-btn-text">学校管理</text>
-				<text class="material-symbols-outlined">chevron_right</text>
-			</view>
-			
-			<view class="settings-divider"></view>
-			
 			<view class="settings-footer">
 				<view class="settings-footer-btn" @click="openGithub">
 					<text class="material-symbols-outlined" style="font-size: 18px;">code</text>
@@ -107,8 +89,7 @@ export default {
 		useRandomPreset: { type: Boolean, default: true },
 		presetLocations: { type: Array, default: () => [] },
 		selectedPresetIndex: { type: Number, default: -1 },
-		selectedPresetName: { type: String, default: '' },
-		currentCampusName: { type: String, default: '' }
+		selectedPresetName: { type: String, default: '' }
 	},
 	data() {
 		return {
@@ -361,65 +342,6 @@ export default {
 }
 .btn-settings-secondary:active { transform: scale(0.98); background: rgba(20, 40, 75, 0.5); }
 .settings-divider { height: 1px; background: rgba(255, 255, 255, 0.06); margin: 16px 0; }
-
-/* 学校管理按钮 */
-.settings-school-btn {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 16px;
-	background: rgba(var(--color-primary-rgb, 0, 95, 156), 0.05);
-	border: 1px solid rgba(var(--color-primary-rgb, 0, 95, 156), 0.15);
-	border-radius: 14px;
-	margin-bottom: 16px;
-	transition: all 0.3s;
-}
-
-.settings-school-btn:active {
-	background: rgba(var(--color-primary-rgb, 0, 95, 156), 0.1);
-}
-
-.settings-school-btn .material-symbols-outlined {
-	font-size: 20px;
-	color: var(--color-primary);
-}
-
-.settings-school-btn-text {
-	flex: 1;
-	font-size: 15px;
-	font-weight: 500;
-	color: rgba(255, 255, 255, 0.8);
-}
-
-.settings-school-btn .material-symbols-outlined:last-child {
-	color: rgba(255, 255, 255, 0.3);
-}
-
-/* 校区显示 */
-.campus-display {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 14px 16px;
-	background: rgba(255, 255, 255, 0.05);
-	border: 1px solid rgba(255, 255, 255, 0.08);
-	border-radius: 14px;
-	transition: all 0.3s;
-}
-
-.campus-display:active {
-	background: rgba(255, 255, 255, 0.08);
-}
-
-.campus-display-text {
-	font-size: 15px;
-	color: rgba(255, 255, 255, 0.85);
-}
-
-.campus-display-icon {
-	font-size: 20px;
-	color: var(--color-primary);
-}
 
 .settings-footer { display: flex; gap: 12px; }
 .settings-footer-btn {

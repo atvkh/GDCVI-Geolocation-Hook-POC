@@ -72,7 +72,16 @@ page { background: var(--color-bg-dark); }
 	100% { transform: translate(3%, 5%) scale(1.05) rotate(0.5deg); } 
 }
 
-.main-content { margin-top: 0; width: 100%; display: flex; flex-direction: column; align-items: center; position: relative; padding: 0; box-sizing: border-box; }
+.main-content { 
+	margin-top: 20px; 
+	width: 100%; 
+	display: flex; 
+	flex-direction: column; 
+	align-items: center; 
+	position: relative; 
+	padding: 0; 
+	box-sizing: border-box; 
+}
 
 .precision-header { margin-top: 6vh; width: 88%; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; padding: 0 10px; }
 .system-time { display: flex; align-items: baseline; font-family: 'JetBrains Mono', 'Roboto Mono', monospace; }
@@ -433,9 +442,13 @@ page { background: var(--color-bg-dark); }
 
 /* ——— 首页卡片 ——— */
 .home-card {
-	padding: 0;
-	border: none;
-	background: transparent;
+	padding: 0 !important;
+	border: none !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+.home-card::before {
+	display: none !important;
 }
 
 /* ——— 底部抽屉通用样式（教程） ——— */

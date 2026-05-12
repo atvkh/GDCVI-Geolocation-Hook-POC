@@ -4,32 +4,6 @@
 			<view class="card-glow-bg glow-home"></view>
 			<view class="card-inner">
 
-				<view class="security-probe-panel">
-					<view class="probe-data-stream"></view>
-					<view class="probe-scanline"></view>
-					<view class="probe-content">
-						<view class="probe-header">
-							<text class="material-symbols-outlined probe-icon">shield</text>
-							<text class="probe-title">环境安全探针</text>
-							<view class="probe-status safe">
-								<view class="status-dot"></view>
-								<text>加密通道就绪</text>
-							</view>
-						</view>
-						<view class="probe-metrics">
-							<view class="metric-item">
-								<text class="metric-label">设备指纹</text>
-								<text class="metric-value">动态掩码 <text class="active-text">ON</text></text>
-							</view>
-							<view class="metric-divider"></view>
-							<view class="metric-item">
-								<text class="metric-label">坐标扰动</text>
-								<text class="metric-value">±3m 漂移 <text class="active-text">ON</text></text>
-							</view>
-						</view>
-					</view>
-				</view>
-
 				<view class="input-section">
 					<view class="section-header">
 						<text class="section-label">网络反馈</text>
@@ -85,48 +59,58 @@
 			</view>
 		</view>
 
-		<view class="matrix-drawer-overlay" v-if="showMatrix" @tap="closeMatrix">
-			<view class="matrix-drawer" @tap.stop @touchstart="onDrawerTouchStart" @touchend="onDrawerTouchEnd">
-				<view class="matrix-drawer-header">
-					<view class="matrix-drawer-title">
-						<text class="material-symbols-outlined">groups</text>
-						<text>矩阵库维护</text>
+		<!-- 矩阵库抽屉 - 移到最外层 -->
+	</view>
+	
+	<view class="matrix-drawer-overlay" v-if="showMatrix" @tap="closeMatrix">
+		<view class="matrix-drawer" @tap.stop @touchstart="onDrawerTouchStart" @touchend="onDrawerTouchEnd">
+			<view class="matrix-drawer-header">
+				<view class="matrix-drawer-title">
+					<text class="material-symbols-outlined">groups</text>
+					<text>矩阵库维护</text>
+				</view>
+				<view class="matrix-drawer-close" @click="closeMatrix">
+					<text class="material-symbols-outlined">close</text>
+				</view>
+			</view>
+			<view class="matrix-drawer-line"></view>
+
+			<scroll-view class="matrix-drawer-body" scroll-y>
+				<view class="matrix-drawer-section">
+					<text class="matrix-drawer-label">参数更新与删除</text>
+					<view class="matrix-select" @click="showManageDropdown = !showManageDropdown">
+						<text class="matrix-select-text">{{ manageSelectedUser ? manageSelectedUser.name : '点击选择预设人员...' }}</text>
+						<text class="material-symbols-outlined">arrow_drop_down</text>
+						<view class="matrix-dropdown" v-if="showManageDropdown">
+							<view class="matrix-dropdown-item" v-for="(user, index) in userList" :key="index" @click.stop="selectManageUser(user, index)">
+								{{ user.name }}
+							</view>
+							<view class="matrix-dropdown-empty" v-if="userList.length === 0">暂无数据</view>
+						</view>
 					</view>
-					<view class="matrix-drawer-close" @click="closeMatrix">
+				</view>
+
+				<view class="matrix-drawer-section">
+					<text class="matrix-drawer-label">新增人员录入</text>
+					<input class="matrix-input" v-model="newUserName" placeholder="人员名称 (如: 张三)" />
+					<input class="matrix-input" v-model="newUserUrl" placeholder="粘贴对应链接" maxlength="-1" />
+					<view class="matrix-btn-submit" @click="saveNewUser"><text>提交录入</text></view>
+				</view>
+			</scroll-view>
+			
+			<!-- 管理区域 - 固定在底部 -->
+			<view v-if="manageSelectedUser" class="matrix-manage-area">
+				<view class="matrix-manage-header">
+					<text class="matrix-manage-title">管理: {{ manageSelectedUser.name }}</text>
+					<view class="matrix-manage-close" @click="manageSelectedUser = null">
 						<text class="material-symbols-outlined">close</text>
 					</view>
 				</view>
-				<view class="matrix-drawer-line"></view>
-
-				<scroll-view class="matrix-drawer-body" scroll-y>
-					<view class="matrix-drawer-section">
-						<text class="matrix-drawer-label">参数更新与删除</text>
-						<view class="matrix-select" @click="showManageDropdown = !showManageDropdown">
-							<text class="matrix-select-text">{{ manageSelectedUser ? manageSelectedUser.name : '点击选择预设人员...' }}</text>
-							<text class="material-symbols-outlined">arrow_drop_down</text>
-							<view class="matrix-dropdown" v-if="showManageDropdown">
-								<view class="matrix-dropdown-item" v-for="(user, index) in userList" :key="index" @click.stop="selectManageUser(user, index)">
-									{{ user.name }}
-								</view>
-								<view class="matrix-dropdown-empty" v-if="userList.length === 0">暂无数据</view>
-							</view>
-						</view>
-						<view v-if="manageSelectedUser" class="matrix-manage-area">
-							<input class="matrix-input" v-model="manageNewUrl" placeholder="在此粘贴该人员的最新链接" maxlength="-1" />
-							<view class="matrix-manage-btns">
-								<view class="matrix-btn-update" @click="updateSelectedUser"><text>更新链接</text></view>
-								<view class="matrix-btn-delete" @click="deleteSelectedUser"><text class="material-symbols-outlined">delete</text></view>
-							</view>
-						</view>
-					</view>
-
-					<view class="matrix-drawer-section">
-						<text class="matrix-drawer-label">新增人员录入</text>
-						<input class="matrix-input" v-model="newUserName" placeholder="人员名称 (如: 张三)" />
-						<input class="matrix-input" v-model="newUserUrl" placeholder="粘贴对应链接" maxlength="-1" />
-						<view class="matrix-btn-submit" @click="saveNewUser"><text>提交录入</text></view>
-					</view>
-				</scroll-view>
+				<input class="matrix-input" v-model="manageNewUrl" placeholder="在此粘贴该人员的最新链接" maxlength="-1" />
+				<view class="matrix-manage-btns">
+					<view class="matrix-btn-update" @click="updateSelectedUser"><text>更新链接</text></view>
+					<view class="matrix-btn-delete" @click="deleteSelectedUser"><text class="material-symbols-outlined">delete</text></view>
+				</view>
 			</view>
 		</view>
 	</view>
@@ -139,7 +123,8 @@ export default {
 		isGenerating: { type: Boolean, default: false },
 		loadingText: { type: String, default: '正在接管定位...' },
 		mouseX: { type: Number, default: 0 },
-		mouseY: { type: Number, default: 0 }
+		mouseY: { type: Number, default: 0 },
+		linkPattern: { type: String, default: '' }
 	},
 	data() { 
 		return { 
@@ -163,6 +148,25 @@ export default {
 		}
 	},
 	methods: {
+		validateUrl(url) {
+			// 基础校验：必须是 http/https 链接
+			if (!/^https?:\/\//i.test(url)) {
+				return { valid: false, msg: '请输入有效的 http/https 链接' };
+			}
+			
+			// 特征校验：如果有配置，检查链接是否包含特征关键词
+			if (this.linkPattern) {
+				const keywords = this.linkPattern.split(',').map(k => k.trim()).filter(k => k);
+				if (keywords.length > 0) {
+					const missing = keywords.filter(kw => !url.includes(kw));
+					if (missing.length > 0) {
+						return { valid: false, msg: `链接缺少必要参数` };
+					}
+				}
+			}
+			
+			return { valid: true, msg: '' };
+		},
 		closeMatrix() {
 			this.showMatrix = false;
 			this.showManageDropdown = false;
@@ -187,8 +191,8 @@ export default {
 			const url = this.manageNewUrl.trim();
 			if (!url) return uni.showToast({ title: '新链接不能为空', icon: 'none' });
 			
-			const isValid = /^https?:\/\//i.test(url) && /[?&]appKey=/.test(url) && /[?&]code=/.test(url);
-			if (!isValid) return uni.showToast({ title: '无效链接：缺失核心参数', icon: 'none' });
+			const result = this.validateUrl(url);
+			if (!result.valid) return uni.showToast({ title: result.msg, icon: 'none' });
 
 			this.userList[this.manageSelectedIndex].url = url;
 			uni.setStorageSync('cyberUserMatrix', this.userList);
@@ -216,8 +220,8 @@ export default {
 			const url = this.newUserUrl.trim();
 			if(!name || !url) return uni.showToast({ title: '信息不完整', icon: 'none' });
 			
-			const isValid = /^https?:\/\//i.test(url) && /[?&]appKey=/.test(url) && /[?&]code=/.test(url);
-			if (!isValid) return uni.showToast({ title: '无效链接：缺失核心参数', icon: 'none' });
+			const result = this.validateUrl(url);
+			if (!result.valid) return uni.showToast({ title: result.msg, icon: 'none' });
 
 			const existIndex = this.userList.findIndex(u => u.name === name);
 			if (existIndex !== -1) {
@@ -263,8 +267,8 @@ export default {
 		startCheckIn() {
 			const url = this.targetUrl.trim();
 			if(!url) return uni.showToast({ title: '链接为空', icon: 'none' });
-			const isValid = /^https?:\/\//i.test(url) && /[?&]appKey=/.test(url) && /[?&]code=/.test(url);
-			if (!isValid) return uni.showToast({ title: '无效链接：缺失参数', icon: 'none', duration: 3000 });
+			const result = this.validateUrl(url);
+			if (!result.valid) return uni.showToast({ title: result.msg, icon: 'none', duration: 3000 });
 			this.$emit('start-checkin', url);
 		}
 	}
@@ -292,7 +296,9 @@ export default {
 }
 
 
-.card-home { border-top: 3px solid var(--color-primary); }
+.card-home { 
+	border-top: 3px solid var(--color-primary); 
+}
 .glow-home { top: -60px; left: -60px; background: radial-gradient(circle, rgba(0,95,156,0.25) 0%, transparent 70%); }
 
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -325,12 +331,12 @@ export default {
 
 /* 极速打卡按钮 - 厚实果冻玻璃 */
 .btn-cyber {
-  position: relative; width: 100%; padding: 16px 0; border-radius: 18px;
+  position: relative; width: 100%; padding: 18px 0; border-radius: 18px;
   background: linear-gradient(180deg, var(--color-primary-soft) 0%, rgba(0, 60, 120, 0.6) 100%);
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--color-border);
   box-shadow: var(--glass-shadow);
-  cursor: pointer; margin-bottom: 12px;
+  cursor: pointer; margin-bottom: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn-cyber::before {
@@ -366,7 +372,7 @@ export default {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   color: rgba(180, 210, 255, 0.9);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(80, 140, 220, 0.1);
-  margin-bottom: 12px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 16px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn-extract:active { 
   transform: scale(0.98); 
@@ -394,103 +400,40 @@ export default {
 .tut-sub-sm { font-size: 12px; color: rgba(255, 255, 255, 0.45); margin-top: 4px; }
 .tut-arrow { color: rgba(255, 255, 255, 0.3); font-size: 20px; }
 
-.security-probe-panel { 
-	background: rgba(15, 30, 60, 0.5);
-	backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-	border: 1px solid rgba(60, 100, 160, 0.2);
-	border-radius: 18px; padding: 18px; margin-bottom: 20px; 
-	position: relative; overflow: hidden;
-	box-shadow: inset 0 1px 0 rgba(80, 140, 220, 0.08);
-}
-.probe-data-stream {
-	position: absolute; top: 0; right: 0; bottom: 0; left: 0; opacity: 0.02; pointer-events: none;
-	background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-	background-size: 100% 4px;
-}
-.probe-scanline {
-	position: absolute; top: -100%; left: 0; width: 100%; height: 100%;
-	background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.02), transparent);
-	animation: scanner-loop 4s linear infinite; pointer-events: none;
-}
-.probe-content { position: relative; z-index: 5; }
-.probe-header { display: flex; align-items: center; margin-bottom: 12px; }
-.probe-icon { 
-	color: #7dd3a8; font-size: 18px; margin-right: 8px; 
-}
-.probe-title { font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.5); flex: 1; letter-spacing: 0.5px; }
-.probe-status { 
-	display: flex; align-items: center; gap: 6px; 
-	font-size: 10px; font-weight: 600; 
-	padding: 5px 12px; border-radius: 20px; 
-	background: rgba(125, 211, 168, 0.1); 
-	color: #7dd3a8; 
-	border: 1px solid rgba(125, 211, 168, 0.15); 
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-}
-.status-dot { 
-	width: 6px; height: 6px; border-radius: 50%; 
-	background: #7dd3a8; 
-	box-shadow: 0 0 8px rgba(125, 211, 168, 0.4); 
-	animation: pulse-dot 3s infinite; 
-}
-
-.probe-metrics { 
-	display: flex; align-items: center; justify-content: space-between; 
-	background: rgba(255, 255, 255, 0.03); 
-	padding: 12px; border-radius: 14px; 
-	border: 1px solid rgba(255, 255, 255, 0.04); 
-}
-.metric-item { display: flex; flex-direction: column; gap: 4px; flex: 1; align-items: center; }
-.metric-label { 
-	font-size: 9px; 
-	color: rgba(255, 255, 255, 0.35); 
-	text-transform: uppercase; 
-	letter-spacing: 1.5px; 
-	font-weight: 600; 
-}
-.metric-value { 
-	font-size: 13px; 
-	color: rgba(255, 255, 255, 0.85); 
-	font-weight: 600; 
-	display: flex; align-items: center; gap: 4px; 
-	font-family: 'JetBrains Mono', 'Roboto Mono', monospace; 
-}
-.active-text { 
-	color: #7dd3a8; font-size: 9px; 
-	background: rgba(125, 211, 168, 0.1); 
-	padding: 2px 6px; border-radius: 4px; 
-	font-weight: 700; margin-left: 2px; 
-}
-.metric-divider { width: 1px; height: 18px; background: rgba(255, 255, 255, 0.06); }
-
-@keyframes scanner-loop { 0% { top: -100%; } 100% { top: 100%; } }
-@keyframes scan-move { 0% { background-position: 0 0; } 100% { background-position: 0 100%; } }
-
 .matrix-drawer-overlay {
 	position: fixed;
 	top: 0;
 	left: 0;
 	width: 100%;
 	height: 100%;
-	background: rgba(0, 0, 0, 0.4);
+	background: rgba(0, 0, 0, 0.5);
 	backdrop-filter: blur(10px);
 	-webkit-backdrop-filter: blur(10px);
-	z-index: 999;
+	z-index: 9999;
 }
 
 .matrix-drawer {
-	position: absolute;
+	position: fixed;
 	bottom: 0;
 	left: 0;
 	width: 100%;
-	max-height: 85vh;
+	max-height: 75vh;
 	background: #1a2540;
 	border-radius: 24px 24px 0 0;
-	padding: 12px 20px 34px;
+	padding: 16px 20px 34px;
 	display: flex;
 	flex-direction: column;
 	box-sizing: border-box;
+	z-index: 10000;
+}
+
+.matrix-drawer-header {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 8px;
+	padding: 0 4px;
 }
 
 .matrix-drawer-line {
@@ -499,13 +442,25 @@ export default {
 	background: rgba(255, 255, 255, 0.2);
 	border-radius: 2px;
 	margin: 0 auto 16px;
+	flex-shrink: 0;
 }
 
-.matrix-drawer-header {
+.matrix-drawer-body {
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	-webkit-overflow-scrolling: touch;
+	min-height: 0;
+	max-height: calc(75vh - 100px);
+}
+
+.matrix-drawer-title {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 4px;
+	gap: 8px;
+	font-size: 17px;
+	font-weight: 700;
+	color: #fff;
 }
 .matrix-drawer-title {
 	display: flex;
@@ -536,18 +491,13 @@ export default {
 	background: rgba(255, 255, 255, 0.2);
 }
 
-.matrix-drawer-body {
-	flex: 1;
-	overflow-y: auto;
-	padding-bottom: env(safe-area-inset-bottom);
-}
-
 .matrix-drawer-section {
 	background: rgba(255, 255, 255, 0.04);
 	border: 1px solid rgba(255, 255, 255, 0.06);
 	border-radius: 14px;
 	padding: 16px;
 	margin-bottom: 14px;
+	flex-shrink: 0;
 }
 .matrix-drawer-section:last-child {
 	margin-bottom: 0;
@@ -615,10 +565,40 @@ export default {
 }
 
 .matrix-manage-area {
-	margin-top: 12px;
+	flex-shrink: 0;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	border-radius: 14px;
+	padding: 16px;
+	margin-top: 16px;
+}
+
+.matrix-manage-header {
 	display: flex;
-	flex-direction: column;
-	gap: 10px;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
+}
+
+.matrix-manage-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.matrix-manage-close {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.1);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.matrix-manage-close text {
+	font-size: 16px;
+	color: rgba(255, 255, 255, 0.6);
 }
 
 .matrix-input {
