@@ -285,16 +285,39 @@ export default {
 					return;
 				}
 				
+				// 过滤空预设点
+				campus.presets = campus.presets.filter(p => p.name.trim() && p.lat && p.lng);
+				
 				for (const preset of campus.presets) {
-					if (preset.lat && preset.lng) {
-						hasValidPreset = true;
-						preset.lat = parseFloat(preset.lat);
-						preset.lng = parseFloat(preset.lng);
+					const lat = parseFloat(preset.lat);
+					const lng = parseFloat(preset.lng);
+					
+					// 校验坐标有效性
+					if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+						uni.showToast({ title: `"${preset.name}" 坐标格式无效`, icon: 'none' });
+						return;
 					}
+					
+					// 校验坐标范围
+					if (lat < -90 || lat > 90) {
+						uni.showToast({ title: `"${preset.name}" 纬度需在 -90 到 90 之间`, icon: 'none' });
+						return;
+					}
+					
+					if (lng < -180 || lng > 180) {
+						uni.showToast({ title: `"${preset.name}" 经度需在 -180 到 180 之间`, icon: 'none' });
+						return;
+					}
+					
+					hasValidPreset = true;
+					preset.lat = lat;
+					preset.lng = lng;
 				}
 			}
 			
-			if (!hasValidPreset) {
+			// 检查是否至少有一个有效校区有预设点
+			const validCampuses = this.formData.campuses.filter(c => c.presets.length > 0);
+			if (validCampuses.length === 0) {
 				uni.showToast({ title: '请至少添加一个有效的预设点', icon: 'none' });
 				return;
 			}

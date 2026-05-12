@@ -117,6 +117,8 @@
 </template>
 
 <script>
+import { secureGet, secureSet } from '@/utils/crypto.js';
+
 export default {
 	emits: ['start-checkin', 'open-tutorial'],
 	props: {
@@ -132,7 +134,7 @@ export default {
 			selectedName: '',
 			showMatrix: false,
 			showDropdown: false,
-			userList: uni.getStorageSync('cyberUserMatrix') || [],
+			userList: secureGet('cyberUserMatrix') || [],
 			newUserName: '',
 			newUserUrl: '',
 			showManageDropdown: false,
@@ -195,7 +197,7 @@ export default {
 			if (!result.valid) return uni.showToast({ title: result.msg, icon: 'none' });
 
 			this.userList[this.manageSelectedIndex].url = url;
-			uni.setStorageSync('cyberUserMatrix', this.userList);
+			secureSet('cyberUserMatrix', this.userList);
 			uni.showToast({ title: '参数更新成功', icon: 'none' });
 			this.manageNewUrl = '';
 			
@@ -206,7 +208,7 @@ export default {
 		deleteSelectedUser() {
 			const name = this.manageSelectedUser.name;
 			this.userList.splice(this.manageSelectedIndex, 1);
-			uni.setStorageSync('cyberUserMatrix', this.userList);
+			secureSet('cyberUserMatrix', this.userList);
 			this.manageSelectedUser = null;
 			this.manageSelectedIndex = -1;
 			uni.showToast({ title: '已移除', icon: 'none' });
@@ -229,7 +231,7 @@ export default {
 			}
 			
 			this.userList.unshift({ name, url });
-			uni.setStorageSync('cyberUserMatrix', this.userList);
+			secureSet('cyberUserMatrix', this.userList);
 			this.newUserName = ''; 
 			this.newUserUrl = '';
 			uni.showToast({ title: '录入成功', icon: 'none' });

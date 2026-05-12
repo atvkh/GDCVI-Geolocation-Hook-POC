@@ -1,6 +1,6 @@
 {
   "name": "幻签",
-  "version": "11.0.0",
+  "version": "11.1.0",
   "description": "移动端 WebView 地理定位 API 拦截 POC",
   "main": "main.js",
   "scripts": {

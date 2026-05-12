@@ -44,6 +44,19 @@ page {
 	--glass-blur-thick: blur(32px);
 	--glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(100, 150, 220, 0.1);
 	--glass-shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.3);
+	
+	/* 液态玻璃效果变量 */
+	--glass-primary: rgba(255, 255, 255, 0.08);
+	--glass-secondary: rgba(255, 255, 255, 0.05);
+	--glass-accent: rgba(255, 255, 255, 0.12);
+	--glass-border-refined: rgba(255, 255, 255, 0.18);
+	--glass-glow: rgba(255, 255, 255, 0.25);
+	--glass-gradient-1: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.04) 100%);
+	--glass-gradient-2: linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.03) 100%);
+	--glass-radial: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 40%, transparent 100%);
+	--glass-blur-light: blur(16px) saturate(1.8) brightness(1.05);
+	--glass-blur-medium: blur(24px) saturate(2.2) brightness(1.08);
+	--glass-blur-heavy: blur(32px) saturate(2.8) brightness(1.12);
 }
 
 page { background: var(--color-bg-dark); }
@@ -314,7 +327,7 @@ page { background: var(--color-bg-dark); }
 .spinning { animation: spin 2s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* 底部导航栏 - 液态磁吸胶囊 */
+/* 底部导航栏 - 液态玻璃效果 */
 .island-container {
 	position: fixed; left: 0; right: 0; bottom: 20px;
 	display: flex; justify-content: center;
@@ -323,22 +336,28 @@ page { background: var(--color-bg-dark); }
 }
 .island-pill {
 	display: flex; align-items: center;
-	background: rgba(12, 20, 40, 0.75);
-	backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8);
-	border: 1px solid rgba(80, 130, 200, 0.15);
+	background: var(--glass-gradient-2);
+	backdrop-filter: var(--glass-blur-heavy); -webkit-backdrop-filter: var(--glass-blur-heavy);
+	border: 1px solid var(--glass-border-refined);
 	border-radius: 50px;
 	padding: 6px;
 	position: relative;
 	box-shadow: 
 		0 8px 40px rgba(0, 0, 0, 0.5),
 		0 2px 8px rgba(0, 0, 0, 0.3),
-		inset 0 1px 0 rgba(120, 180, 255, 0.08),
+		inset 0 1px 0 var(--glass-glow),
 		inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+	transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
 }
 .island-pill::before {
 	content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
-	background: linear-gradient(180deg, rgba(100, 160, 240, 0.06) 0%, transparent 100%);
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
 	border-radius: 50px 50px 0 0; pointer-events: none;
+}
+.island-pill::after {
+	content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+	background: linear-gradient(90deg, transparent 20%, rgba(255, 255, 255, 0.12) 50%, transparent 80%);
+	pointer-events: none;
 }
 .island-indicator {
 	position: absolute;
@@ -460,4 +479,109 @@ page { background: var(--color-bg-dark); }
 	opacity: 0;
 	transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 	pointer-events: none;
+}
+
+/* ——— 液态玻璃效果工具类 ——— */
+.glass-liquid {
+	background: var(--glass-gradient-1);
+	border: 1px solid var(--glass-border-refined);
+	backdrop-filter: var(--glass-blur-medium);
+	-webkit-backdrop-filter: var(--glass-blur-medium);
+	box-shadow: 
+		0 8px 32px rgba(0, 0, 0, 0.3),
+		inset 0 1px 0 var(--glass-glow);
+	position: relative;
+	overflow: hidden;
+}
+
+.glass-liquid::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: var(--glass-radial);
+	opacity: 0.3;
+	pointer-events: none;
+	z-index: 1;
+}
+
+.glass-card-enhanced {
+	background: var(--glass-gradient-2);
+	border: 1px solid var(--glass-border-refined);
+	backdrop-filter: var(--glass-blur-light);
+	-webkit-backdrop-filter: var(--glass-blur-light);
+	box-shadow: 
+		0 8px 32px rgba(0, 0, 0, 0.3),
+		inset 0 1px 0 var(--glass-glow);
+	position: relative;
+	overflow: hidden;
+}
+
+.glass-card-enhanced::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 50%;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 100%);
+	pointer-events: none;
+}
+
+.glass-card-enhanced::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.1) 50%, transparent 90%);
+}
+
+.glass-button-enhanced {
+	background: var(--glass-gradient-1);
+	border: 1px solid var(--glass-border-refined);
+	backdrop-filter: var(--glass-blur-light);
+	-webkit-backdrop-filter: var(--glass-blur-light);
+	box-shadow: 
+		0 4px 16px rgba(0, 0, 0, 0.2),
+		inset 0 1px 0 var(--glass-glow);
+	position: relative;
+	overflow: hidden;
+	transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.glass-button-enhanced::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, 
+		transparent 0%, 
+		rgba(255, 255, 255, 0.2) 50%, 
+		transparent 100%);
+	transition: left 0.6s ease;
+	pointer-events: none;
+}
+
+.glass-button-enhanced:active {
+	transform: scale(0.97);
+}
+
+.glass-button-enhanced:active::before {
+	left: 100%;
+}
+
+/* 液态玻璃闪烁动画 */
+@keyframes glassShimmer {
+	0%, 100% { opacity: 0.3; }
+	50% { opacity: 0.6; }
+}
+
+.glass-shimmer {
+	animation: glassShimmer 4s ease-in-out infinite;
 }

@@ -317,6 +317,11 @@ git clone https://github.com/atvkh/GDCVI-Geolocation-Hook-POC.git
 ✦ 移除虚假的安全探针面板
 ✦ 优化校区切换交互
 ✦ 修复矩阵库维护界面显示问题
+✦ 精简 Android 权限（仅保留网络相关）
+✦ 敏感数据本地加密存储
+✦ 坐标输入校验（范围检查）
+✦ 远程更新添加超时和错误处理
+✦ 优化定时器清理逻辑
 ```
 
 ### v11.0.0

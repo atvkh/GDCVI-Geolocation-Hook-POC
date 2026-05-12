@@ -253,6 +253,7 @@ import TabSettings from '@/components/TabSettings.vue';
 import SchoolManager from '@/components/SchoolManager.vue';
 import SchoolEditor from '@/components/SchoolEditor.vue';
 import { generateCoreScript } from '@/utils/injectScript.js';
+import { secureGet, secureSet } from '@/utils/crypto.js';
 import { 
 	APP_VERSION, APP_VERSION_CODE, UPDATE_JSON_URL,
 	INJECT_MAX_ATTEMPTS, INJECT_INTERVAL_MS, MAX_HISTORY_RECORDS,
@@ -270,7 +271,7 @@ export default {
 			isGenerating: false, loadingText: '', mouseX: 0, mouseY: 0,
 			useRandomPreset: uni.getStorageSync('useRandomPreset') !== false,
 			fakeLat: 0, fakeLng: 0,
-			historyList: uni.getStorageSync('historyList') || [],
+			historyList: secureGet('historyList') || [],
 			buttonSelector: '.adm-button-primary',
 			showUpdateModal: false,
 			updateInfo: { version: '', log: '', url: '', forceUpdate: false },
@@ -388,7 +389,7 @@ export default {
 					time: timeStr, date: dateStr, lat: this.fakeLat, lng: this.fakeLng, 
 					status: isSuccess ? '成功' : '失败', reason: msg || '' 
 				});
-				uni.setStorageSync('historyList', this.historyList.slice(0, MAX_HISTORY_RECORDS));
+				secureSet('historyList', this.historyList.slice(0, MAX_HISTORY_RECORDS));
 			};
 
 			window.__updateGlobalCoords = (lat, lng) => {
@@ -403,7 +404,15 @@ export default {
 		// #endif
 	},
 	onUnload() {
-		if (this.timerRef) clearInterval(this.timerRef);
+		// 清理所有定时器
+		if (this.timerRef) {
+			clearInterval(this.timerRef);
+			this.timerRef = null;
+		}
+		if (this.persistentInjectTimer) {
+			clearInterval(this.persistentInjectTimer);
+			this.persistentInjectTimer = null;
+		}
 	},
 	methods: {
 		initSchoolData() {
@@ -621,6 +630,7 @@ export default {
 			uni.request({
 				url: UPDATE_JSON_URL + '?t=' + new Date().getTime(),
 				method: 'GET',
+				timeout: 10000, // 10秒超时
 				success: (res) => {
 					if (res.statusCode === 200 && res.data) {
 						const remoteData = res.data;
@@ -634,6 +644,10 @@ export default {
 							this.showUpdateModal = true;
 						}
 					}
+				},
+				fail: (err) => {
+					console.warn('[Update] 检查更新失败:', err);
+					// 静默失败，不打扰用户
 				}
 			});
 		},
