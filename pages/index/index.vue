@@ -905,6 +905,51 @@ export default {
 	margin-bottom: 24px;
 }
 
+.preset-form .settings-field {
+	margin-bottom: 16px;
+}
+
+.preset-form .settings-label {
+	font-size: 13px;
+	color: rgba(255, 255, 255, 0.45);
+	margin-bottom: 8px;
+	display: block;
+	font-weight: 500;
+	letter-spacing: 0.3px;
+}
+
+.preset-form .settings-input-wrapper {
+	background: rgba(15, 30, 60, 0.6);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid rgba(60, 100, 160, 0.2);
+	border-radius: 14px;
+	padding: 14px 16px;
+	transition: all 0.3s;
+	box-shadow: inset 0 1px 0 rgba(80, 140, 220, 0.05);
+}
+
+.preset-form .settings-input-wrapper:focus-within {
+	border-color: var(--color-primary);
+	background: rgba(20, 40, 75, 0.7);
+	box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.preset-form .settings-input {
+	background: transparent;
+	border: none;
+	outline: none;
+	color: rgba(255, 255, 255, 0.92);
+	font-size: 16px;
+	width: 100%;
+	box-sizing: border-box;
+	font-family: 'JetBrains Mono', monospace;
+}
+
+.preset-form .settings-input::placeholder {
+	color: rgba(255, 255, 255, 0.25);
+}
+
 .preset-modal-actions {
 	display: flex;
 	align-items: center;

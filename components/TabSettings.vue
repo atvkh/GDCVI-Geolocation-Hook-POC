@@ -41,14 +41,17 @@
 				</view>
 				<view class="dropdown-list" v-if="showPresetDropdown">
 					<view class="dropdown-item" v-for="(loc, index) in presetLocations" :key="index"
-						:class="{'dropdown-active': selectedPresetIndex === index}"
-						@click="selectPreset(loc, index)"
-						@longpress="$emit('edit-preset', index)">
-						<view class="dropdown-item-info">
+						:class="{'dropdown-active': selectedPresetIndex === index}">
+						<view class="dropdown-item-info" @click="selectPreset(loc, index)">
 							<text class="dropdown-item-name">{{ loc.name }}</text>
 							<text class="dropdown-item-coord">{{ loc.lat }}, {{ loc.lng }}</text>
 						</view>
-						<text class="material-symbols-outlined dropdown-check" v-if="selectedPresetIndex === index">check_circle</text>
+						<view class="dropdown-item-actions">
+							<view class="btn-preset-edit" @click.stop="$emit('edit-preset', index)">
+								<text class="material-symbols-outlined">edit</text>
+							</view>
+							<text class="material-symbols-outlined dropdown-check" v-if="selectedPresetIndex === index">check_circle</text>
+						</view>
 					</view>
 				</view>
 			</view>
@@ -291,6 +294,16 @@ export default {
 .dropdown-item-name { color: rgba(255, 255, 255, 0.9); font-size: 14px; font-weight: 500; }
 .dropdown-item-coord { color: rgba(255, 255, 255, 0.4); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
 .dropdown-check { font-size: 20px; color: #4ade80; }
+.dropdown-item-actions { display: flex; align-items: center; gap: 8px; }
+.btn-preset-edit {
+	width: 32px; height: 32px; border-radius: 8px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	display: flex; align-items: center; justify-content: center;
+	transition: all 0.2s;
+}
+.btn-preset-edit:active { background: rgba(255, 255, 255, 0.15); transform: scale(0.9); }
+.btn-preset-edit .material-symbols-outlined { font-size: 16px; color: rgba(255, 255, 255, 0.6); }
 .settings-mode { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; }
 .mode-dot { width: 8px; height: 8px; border-radius: 50%; }
 .mode-dot.mode-random { background: #7dd3a8; box-shadow: 0 0 8px rgba(125, 211, 168, 0.3); }

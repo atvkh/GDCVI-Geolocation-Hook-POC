@@ -2,8 +2,8 @@
     "name" : "幻签",
     "appid" : "__UNI__6FEC032",
     "description" : "",
-    "versionName" : "11.1.0",
-    "versionCode" : 112,
+    "versionName" : "11.2.0",
+    "versionCode" : 113,
     "transformPx" : false,
     /* 5+App特有相关 */
     "app-plus" : {

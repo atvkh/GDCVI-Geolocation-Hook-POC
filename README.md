@@ -10,7 +10,7 @@
 
 <br>
 
-[![Version](https://img.shields.io/badge/version-11.1.0-blue.svg?style=for-the-badge)](https://github.com/atvkh/GDCVI-Geolocation-Hook-POC)
+[![Version](https://img.shields.io/badge/version-11.2.0-blue.svg?style=for-the-badge)](https://github.com/atvkh/GDCVI-Geolocation-Hook-POC)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-00d4ff?style=for-the-badge)]()
 [![Framework](https://img.shields.io/badge/Vue-3.x-42b883?style=for-the-badge)](https://vuejs.org/)
 [![Uni-App](https://img.shields.io/badge/Uni--App-V3-2B9939?style=for-the-badge)](https://uniapp.dcloud.io/)
@@ -328,7 +328,17 @@ npm run test:coverage
 
 ## 版本记录
 
-### v11.1.0 (当前版本)
+### v11.2.0 (当前版本)
+
+```
+✦ 新增 fetch API 拦截，修复历史记录不显示问题
+✦ 优化预设点编辑交互，改为可见按钮操作
+✦ 添加单元测试框架 (47个测试用例)
+✦ 修复卡片切换布局问题
+✦ 优化 evalJS 调用安全性
+```
+
+### v11.1.0
 
 ```
 ✦ 新增多学校管理功能
