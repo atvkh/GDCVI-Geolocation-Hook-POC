@@ -255,16 +255,36 @@ export default {
 			this.selectedName = '';
 		},
 		readClipboard() {
+			// #ifdef APP-PLUS
 			uni.getClipboardData({ 
 				success: (res) => { 
-					if(res.data) {
+					if(res.data && res.data.trim()) {
 						this.clearSelection();
 						this.targetUrl = res.data.trim();
 						uni.showToast({ title: '已捕获 URL', icon: 'none' });
-					} else { uni.showToast({ title: '剪贴板为空', icon: 'none' }); }
+					} else { 
+						uni.showToast({ title: '剪贴板为空', icon: 'none' }); 
+					}
 				},
-				fail: () => uni.showToast({ title: '无法读取剪贴板', icon: 'none' })
+				fail: (err) => {
+					console.warn('[Clipboard] 读取失败:', err);
+					uni.showToast({ title: '无法读取剪贴板，请手动粘贴', icon: 'none', duration: 2000 });
+				}
 			});
+			// #endif
+			// #ifndef APP-PLUS
+			navigator.clipboard.readText().then(text => {
+				if (text && text.trim()) {
+					this.clearSelection();
+					this.targetUrl = text.trim();
+					uni.showToast({ title: '已捕获 URL', icon: 'none' });
+				} else {
+					uni.showToast({ title: '剪贴板为空', icon: 'none' });
+				}
+			}).catch(() => {
+				uni.showToast({ title: '无法读取剪贴板，请手动粘贴', icon: 'none' });
+			});
+			// #endif
 		},
 		startCheckIn() {
 			const url = this.targetUrl.trim();
