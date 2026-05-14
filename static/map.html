@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>坐标拾取</title>
+    <script src="https://map.qq.com/api/js?v=2.exp&key=EX5BZ-DUMLQ-T5M56-4T2XI-TVY3Z-LFFZL"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0a1630; }
+        #container { width: 100%; height: 100%; }
+        .center-marker {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -100%);
+            pointer-events: none; z-index: 10;
+            width: 32px; height: 32px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <img class="center-marker" src="https://3gimg.qq.com/lightmap/components/locationPicker2/dist/assets/marker.png">
+
+    <script>
+        var map;
+        // 全局变量，供父页面抓取
+        window.selectedLocation = { lat: 23.73, lng: 113.08 };
+
+        function init() {
+            map = new qq.maps.Map(document.getElementById("container"), {
+                center: new qq.maps.LatLng(23.73, 113.08),
+                zoom: 16
+            });
+
+            // 只要地图停止移动，就更新全局变量
+            qq.maps.event.addListener(map, 'idle', function() {
+                var center = map.getCenter();
+                window.selectedLocation = {
+                    lat: center.getLat(),
+                    lng: center.getLng()
+                };
+            });
+        }
+        window.onload = init;
+    </script>
+</body>
+</html>

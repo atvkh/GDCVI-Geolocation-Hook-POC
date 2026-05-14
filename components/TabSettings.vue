@@ -6,25 +6,20 @@
 		</view>
 		<view class="settings-scroll-area">
 			<view class="settings-field">
-				<text class="settings-label">目标纬度 (Lat)</text>
-				<view class="settings-input-wrapper">
-					<input 
-						type="text" 
-						v-model="localLat"
-						class="settings-input" 
-						placeholder="请输入纬度"
-					/>
+				<view class="settings-field-header">
+					<text class="settings-label">目标坐标 (Lat / Lng)</text>
+					<view class="btn-map-picker" @click="$emit('open-map-picker')">
+						<text class="material-symbols-outlined">map</text>
+						<text>地图拾取</text>
+					</view>
 				</view>
-			</view>
-			<view class="settings-field">
-				<text class="settings-label">目标经度 (Lng)</text>
-				<view class="settings-input-wrapper">
-					<input 
-						type="text" 
-						v-model="localLng"
-						class="settings-input" 
-						placeholder="请输入经度"
-					/>
+				<view class="coord-input-group">
+					<view class="settings-input-wrapper">
+						<input type="text" v-model="localLat" class="settings-input" placeholder="纬度" />
+					</view>
+					<view class="settings-input-wrapper">
+						<input type="text" v-model="localLng" class="settings-input" placeholder="经度" />
+					</view>
 				</view>
 			</view>
 
@@ -119,7 +114,15 @@ export default {
 			this.$emit('back-to-school');
 		},
 		saveCoordSettings() {
-			this.$emit('save-coord', Number(this.localLat), Number(this.localLng));
+			const lat = parseFloat(this.localLat);
+			const lng = parseFloat(this.localLng);
+			
+			if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+				uni.showToast({ title: '坐标格式不合法', icon: 'none' });
+				return;
+			}
+			
+			this.$emit('save-coord', lat, lng);
 		},
 		openGithub() {
 			const url = 'https://github.com/atvkh/GDCVI-Geolocation-Hook-POC';
@@ -199,15 +202,29 @@ export default {
 	overflow-x: hidden;
 	-webkit-overflow-scrolling: touch;
 }
-.settings-field { margin-bottom: 16px; }
+.settings-field { margin-bottom: 20px; }
+.settings-field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .settings-label { 
 	font-size: 13px; 
 	color: rgba(255, 255, 255, 0.45); 
-	margin-bottom: 8px; 
-	display: block; 
+	margin-bottom: 0; 
 	font-weight: 500;
 	letter-spacing: 0.3px;
 }
+.btn-map-picker {
+	display: flex; align-items: center; gap: 6px;
+	padding: 6px 12px; border-radius: 10px;
+	background: rgba(var(--color-primary-rgb, 50, 140, 220), 0.15);
+	border: 1px solid var(--color-border);
+	color: var(--color-primary);
+	font-size: 12px; font-weight: 600;
+	transition: all 0.3s;
+}
+.btn-map-picker:active { transform: scale(0.95); background: rgba(var(--color-primary-rgb, 50, 140, 220), 0.25); }
+.btn-map-picker .material-symbols-outlined { font-size: 16px; }
+
+.coord-input-group { display: flex; gap: 12px; }
+
 .settings-input-wrapper {
 	background: rgba(15, 30, 60, 0.6);
 	backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);

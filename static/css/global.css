@@ -54,16 +54,17 @@ page {
 	--glass-gradient-1: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.04) 100%);
 	--glass-gradient-2: linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.03) 100%);
 	--glass-radial: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 40%, transparent 100%);
-	--glass-blur-light: blur(16px) saturate(1.8) brightness(1.05);
-	--glass-blur-medium: blur(24px) saturate(2.2) brightness(1.08);
-	--glass-blur-heavy: blur(32px) saturate(2.8) brightness(1.12);
+	--glass-blur-light: blur(16px) saturate(180%) brightness(1.1);
+	--glass-blur-medium: blur(24px) saturate(220%) brightness(1.15);
+	--glass-blur-heavy: blur(40px) saturate(280%) brightness(1.2);
 }
 
-page { background: var(--color-bg-dark); }
+page { background: #050a1a !important; }
 
 .body-container {
-	height: 100vh; color: var(--color-text-main); display: flex; flex-direction: column; align-items: center;
+	min-height: 100vh; color: var(--color-text-main); display: flex; flex-direction: column; align-items: center;
 	background: var(--color-bg-gradient);
+	background-attachment: fixed; /* 锁定背景，防止滚动露白 */
 	padding-bottom: 80px;
 	position: relative; overflow-y: auto; overflow-x: hidden; z-index: 1;
 	-webkit-overflow-scrolling: touch;
@@ -347,7 +348,7 @@ page { background: var(--color-bg-dark); }
 		0 2px 8px rgba(0, 0, 0, 0.3),
 		inset 0 1px 0 var(--glass-glow),
 		inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-	transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+	transition: all 0.4s cubic-bezier(0.2, 1.2, 0.3, 1);
 }
 .island-pill::before {
 	content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
@@ -367,7 +368,7 @@ page { background: var(--color-bg-dark); }
 	border-radius: 44px;
 	left: 6px;
 	top: 6px;
-	transition: transform 0.35s cubic-bezier(0.2, 1.2, 0.3, 1);
+	transition: transform 0.45s cubic-bezier(0.2, 1.2, 0.3, 1);
 	box-shadow: 
 		0 0 20px rgba(0, 100, 200, 0.25),
 		inset 0 1px 0 rgba(150, 210, 255, 0.2),
@@ -393,7 +394,7 @@ page { background: var(--color-bg-dark); }
 .island-tab:active { transform: scale(0.88); }
 .island-icon { 
 	font-size: 22px; 
-	transition: all 0.35s cubic-bezier(0.2, 1.2, 0.3, 1);
+	transition: all 0.4s cubic-bezier(0.2, 1.2, 0.3, 1);
 }
 
 /* ——— 页面卡片通用样式 - Liquid Glass ——— */
@@ -407,10 +408,10 @@ page { background: var(--color-bg-dark); }
 	box-sizing: border-box;
 	margin-top: 0;
 	box-shadow: 
-		0 12px 48px rgba(0, 0, 0, 0.4),
-		0 4px 16px rgba(0, 0, 0, 0.3),
-		inset 0 1px 0 rgba(120, 180, 255, 0.08),
-		inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+		0 20px 60px rgba(0, 0, 0, 0.45),
+		0 4px 12px rgba(0, 0, 0, 0.2),
+		inset 0 1px 0 rgba(255, 255, 255, 0.15),
+		inset 0 0 20px rgba(120, 180, 255, 0.05);
 	position: relative;
 	overflow: hidden;
 	animation: card-enter 0.6s cubic-bezier(0.2, 1, 0.3, 1);
@@ -425,10 +426,14 @@ page { background: var(--color-bg-dark); }
 }
 .page-card::after {
 	content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-	background: linear-gradient(90deg, transparent 10%, rgba(140, 200, 255, 0.12) 50%, transparent 90%);
+	background: linear-gradient(90deg, 
+		rgba(255, 255, 255, 0) 0%, 
+		rgba(255, 255, 255, 0.25) 50%, 
+		rgba(255, 255, 255, 0) 100%);
+	opacity: 0.8;
 }
 @keyframes card-enter {
-	from { opacity: 0; transform: scale(0.96) translateY(8px); }
+	from { opacity: 0; transform: scale(0.92) translateY(20px); }
 	to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
@@ -441,8 +446,8 @@ page { background: var(--color-bg-dark); }
 	animation: card-fade-in 0.4s cubic-bezier(0.2, 1, 0.3, 1);
 }
 @keyframes card-fade-in {
-	from { opacity: 0; transform: translateY(8px); }
-	to { opacity: 1; transform: translateY(0); }
+	from { opacity: 0; transform: scale(0.98) translateY(12px); }
+	to { opacity: 1; transform: scale(1) translateY(0); }
 }
 .page-card-icon {
 	font-size: 24px;

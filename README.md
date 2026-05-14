@@ -10,7 +10,7 @@
 
 <br>
 
-[![Version](https://img.shields.io/badge/version-11.2.0-blue.svg?style=for-the-badge)](https://github.com/atvkh/GDCVI-Geolocation-Hook-POC)
+[![Version](https://img.shields.io/badge/version-11.4.0-blue.svg?style=for-the-badge)](https://github.com/atvkh/GDCVI-Geolocation-Hook-POC)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-00d4ff?style=for-the-badge)]()
 [![Framework](https://img.shields.io/badge/Vue-3.x-42b883?style=for-the-badge)](https://vuejs.org/)
 [![Uni-App](https://img.shields.io/badge/Uni--App-V3-2B9939?style=for-the-badge)](https://uniapp.dcloud.io/)
@@ -328,15 +328,17 @@ npm run test:coverage
 
 ## 版本记录
 
-### v11.2.0 (当前版本)
+### v11.4.0 (当前版本)
 
 ```
-✦ 新增 fetch API 拦截，修复历史记录不显示问题
-✦ 优化预设点编辑交互，改为可见按钮操作
-✦ 添加单元测试框架 (47个测试用例)
-✦ 修复卡片切换布局问题
-✦ 优化 evalJS 调用安全性
+✦ UI 系统重构：全面迁移至 Liquid Glass 设计语言，集成基于物理特性的弹性交互动效
+✦ 实时监控模块：新增系统运行状态监视器，集成动态扫描线与高精度视觉反馈
+✦ 通讯协议升级：核心通讯链路升级为 Base64 编码，解决复杂字符环境下的 evalJS 通讯异常
+✦ 交互工程优化：引入“黄金大拇指区”布局逻辑，优化单手操作时的人体工程学体验
+✦ 拦截逻辑加固：修复 fetch API 的流消费冲突，提升在极端网络环境下的打卡成功率回传
 ```
+
+### v11.2.0
 
 ### v11.1.0
 

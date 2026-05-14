@@ -29,6 +29,34 @@
 						</scroll-view>
 					</view>
 				</view>
+
+				<view class="status-monitor-wrapper">
+					<view class="status-monitor">
+						<view class="scanline"></view>
+						<view class="corner-top-left"></view>
+						<view class="corner-bottom-right"></view>
+						
+						<view class="status-header">
+							<view class="status-dot" :class="{ 'is-active': isGenerating }"></view>
+							<text class="status-title">核心系统运行监控</text>
+							<text class="status-ver">V11.4.0 PROXY</text>
+						</view>
+						<view class="status-stream">
+							<view class="status-row">
+								<text class="status-line typing-1">> [引擎] {{ isGenerating ? '深度拦截中...' : '底层代理已就绪' }}</text>
+								<view class="status-bar"><view class="status-bar-inner" :class="{ 'is-loading': isGenerating }"></view></view>
+							</view>
+							<view class="status-row">
+								<text class="status-line typing-2">> [GPS] {{ targetUrl ? '位置已锁定' : '等待注入数据' }}</text>
+								<view class="status-bar"><view class="status-bar-inner" :style="{ width: targetUrl ? '100%' : '20%' }"></view></view>
+							</view>
+							<view class="status-row">
+								<text class="status-line typing-3">> [安全] 混淆隧道已加密</text>
+								<view class="status-bar-pulse"></view>
+							</view>
+						</view>
+					</view>
+				</view>
 				
 				<view class="button-group">
 					<button class="btn-cyber" @click="startCheckIn" :class="{'is-generating': isGenerating}">
@@ -146,7 +174,10 @@ export default {
 	},
 	computed: {
 		displayInput() {
-			return this.selectedName ? `[成员] ${this.selectedName}` : this.targetUrl;
+			if (this.selectedName) {
+				return `[成员] ${this.selectedName}`;
+			}
+			return this.targetUrl;
 		}
 	},
 	methods: {
@@ -202,7 +233,9 @@ export default {
 			this.manageNewUrl = '';
 			
 			if (this.selectedName === this.manageSelectedUser.name) {
-				this.targetUrl = this.userList[this.manageSelectedIndex].url;
+				this.targetUrl = url; // 直接使用新链接
+				// 强制触发 computed 更新
+				this.$nextTick(() => { this.$forceUpdate(); });
 			}
 		},
 		deleteSelectedUser() {
@@ -300,9 +333,10 @@ export default {
 <style scoped>
 .tab-wrapper {
 	width: 100%;
-	padding: 0;
+	padding: 0 0 160px;
 	margin: 0;
 	box-sizing: border-box;
+	background-color: #050a1a; /* 显式设置背景色，防止露白 */
 }
 .btn-primary[disabled], .btn-primary:disabled { opacity: 0.6; pointer-events: none; }
 .btn-primary.is-generating { opacity: 0.8; pointer-events: none; }
@@ -320,6 +354,7 @@ export default {
 
 .card-home { 
 	border-top: 3px solid var(--color-primary); 
+	padding-top: 24px;
 }
 .glow-home { top: -60px; left: -60px; background: radial-gradient(circle, rgba(0,95,156,0.25) 0%, transparent 70%); }
 
@@ -329,7 +364,7 @@ export default {
 .matrix-toggle:active { opacity: 0.7; transform: scale(0.95); }
 .icon-small { font-size: 14px; }
 
-.neon-input { position: relative; margin-bottom: 32px; background: rgba(0,20,35,0.4); border-radius: 12px; padding: 4px 16px; box-shadow: inset 0 1px 1px rgba(255,255,255,0.08), 0 0 0 1px rgba(0,95,156,0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.3s; display: flex; align-items: center; z-index: 20; }
+.neon-input { position: relative; margin-bottom: 30px !important; background: rgba(0,20,35,0.4); border-radius: 12px; padding: 4px 16px; box-shadow: inset 0 1px 1px rgba(255,255,255,0.08), 0 0 0 1px rgba(0,95,156,0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.3s; display: flex; align-items: center; z-index: 20; }
 .neon-input:focus-within { box-shadow: 0 0 20px rgba(0,95,156,0.25), inset 0 0 0 1px var(--color-primary); }
 .custom-input { flex: 1; height: 48px; font-size: 14px; color: var(--color-text-main); background: transparent; border: none; outline: none; }
 .clear-icon { font-size: 18px; color: var(--color-text-muted); padding: 4px; margin-left: 8px; }
@@ -349,7 +384,88 @@ export default {
 	display: flex; align-items: center; justify-content: center;
 }
 
+.button-group { margin-top: 30px; margin-bottom: 20px; }
 .loading-text { font-size: 14px; letter-spacing: 1px; white-space: nowrap; animation: text-fade 0.5s ease; }
+
+.status-monitor-wrapper {
+	padding: 2px;
+	background: linear-gradient(135deg, rgba(120, 180, 255, 0.2), transparent 40%, rgba(120, 180, 255, 0.1));
+	border-radius: 16px;
+	margin-bottom: 10px;
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+.status-monitor {
+	position: relative;
+	padding: 16px 18px;
+	background: rgba(8, 12, 24, 0.85);
+	border-radius: 14px;
+	overflow: hidden;
+	min-height: 110px; /* 预留固定高度，防止拉伸 */
+	display: flex;
+	flex-direction: column;
+}
+.scanline {
+	position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+	background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+	background-size: 100% 3px, 3px 100%;
+	pointer-events: none; z-index: 5; opacity: 0.4;
+}
+.corner-top-left, .corner-bottom-right {
+	position: absolute; width: 8px; height: 8px; z-index: 10;
+	border-color: rgba(120, 180, 255, 0.5); border-style: solid;
+}
+.corner-top-left { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+.corner-bottom-right { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+
+.status-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; position: relative; z-index: 6; }
+.status-dot { width: 6px; height: 6px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; animation: blink 2s infinite; }
+.status-dot.is-active { background: #00E676; box-shadow: 0 0 10px #00E676; animation: blink 0.6s infinite; }
+.status-title { font-size: 11px; font-weight: 800; color: rgba(255, 255, 255, 0.45); letter-spacing: 2px; flex: 1; }
+.status-ver { font-family: monospace; font-size: 9px; color: rgba(120, 180, 255, 0.3); background: rgba(120, 180, 255, 0.1); padding: 2px 6px; border-radius: 4px; }
+.status-stream { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 6; }
+.status-row { 
+	display: flex; 
+	align-items: center; 
+	justify-content: space-between; 
+	gap: 10px; 
+	height: 24px; /* 锁定行高 */
+}
+.status-line { 
+	font-family: 'JetBrains Mono', monospace; font-size: 11px; 
+	color: rgba(120, 180, 255, 0.9); 
+	text-shadow: 0 0 8px rgba(120, 180, 255, 0.5);
+	animation: flicker 4s infinite;
+	white-space: nowrap;
+	overflow: hidden;
+	display: inline-block;
+}
+.status-bar { width: 40px; height: 4px; background: rgba(255, 255, 255, 0.05); border-radius: 2px; overflow: hidden; }
+.status-bar-inner { height: 100%; background: #00E676; width: 0; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 5px #00E676; }
+.status-bar-inner.is-loading { width: 100%; animation: bar-shimmer 1s infinite; }
+.status-bar-pulse { width: 10px; height: 4px; background: #00E676; border-radius: 2px; animation: pulse-rect 1s infinite; box-shadow: 0 0 8px #00E676; }
+
+@keyframes flicker {
+	0%, 100% { opacity: 1; }
+	33% { opacity: 0.95; }
+	34% { opacity: 0.7; }
+	35% { opacity: 0.95; }
+	66% { opacity: 1; }
+	67% { opacity: 0.8; }
+	68% { opacity: 1; }
+}
+@keyframes bar-shimmer { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+@keyframes pulse-rect { 0% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(0.5); opacity: 0.5; } 100% { transform: scaleX(1); opacity: 1; } }
+
+/* 打字机进场动画优化：不影响外部布局 */
+.typing-1 { animation: typing 0.4s ease-out forwards; }
+.typing-2 { animation: typing 0.4s ease-out forwards 0.15s; opacity: 0; }
+.typing-3 { animation: typing 0.4s ease-out forwards 0.3s; opacity: 0; }
+@keyframes typing { 
+	from { max-width: 0; opacity: 0; transform: translateX(-5px); } 
+	to { max-width: 100%; opacity: 1; transform: translateX(0); } 
+}
+
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
 /* 极速打卡按钮 - 厚实果冻玻璃 */
 .btn-cyber {
@@ -359,7 +475,7 @@ export default {
   border: 1px solid var(--color-border);
   box-shadow: var(--glass-shadow);
   cursor: pointer; margin-bottom: 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.45s cubic-bezier(0.2, 1.2, 0.3, 1);
 }
 .btn-cyber::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
@@ -377,7 +493,7 @@ export default {
   color: rgba(255, 255, 255, 0.8);
 }
 .btn-cyber:active { 
-  transform: scale(0.98); 
+  transform: scale(0.96) translateY(2px); 
   box-shadow: 
     0 1px 4px rgba(0, 0, 0, 0.2),
     0 4px 12px rgba(0, 0, 0, 0.15),
@@ -394,10 +510,10 @@ export default {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   color: rgba(180, 210, 255, 0.9);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(80, 140, 220, 0.1);
-  margin-bottom: 16px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 16px; transition: all 0.4s cubic-bezier(0.2, 1.2, 0.3, 1);
 }
 .btn-extract:active { 
-  transform: scale(0.98); 
+  transform: scale(0.96); 
   background: rgba(20, 40, 75, 0.6);
 }
 
@@ -405,7 +521,7 @@ export default {
 	background: rgba(15, 30, 60, 0.4);
 	backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
 	border: 1px solid rgba(60, 100, 160, 0.2);
-	border-radius: 18px; padding: 18px;
+	border-radius: 18px; padding: 14px;
 	display: flex; align-items: center; gap: 14px; cursor: pointer;
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);

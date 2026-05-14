@@ -2,8 +2,8 @@
     "name" : "幻签",
     "appid" : "__UNI__6FEC032",
     "description" : "",
-    "versionName" : "11.2.0",
-    "versionCode" : 113,
+    "versionName" : "11.4.0",
+    "versionCode" : 114,
     "transformPx" : false,
     /* 5+App特有相关 */
     "app-plus" : {
@@ -17,7 +17,9 @@
             "delay" : 0
         },
         /* 模块配置 */
-        "modules" : {},
+        "modules" : {
+            "Maps" : {}
+        },
         /* 应用发布信息 */
         "distribute" : {
             /* android打包配置 */
@@ -33,7 +35,13 @@
                 "dSYMs" : false
             },
             /* SDK配置 */
-            "sdkConfigs" : {},
+            "sdkConfigs" : {
+                "maps" : {
+                    "qq" : {
+                        "appkey" : "EX5BZ-DUMLQ-T5M56-4T2XI-TVY3Z-LFFZL"
+                    }
+                }
+            },
             "icons" : {
                 "android" : {
                     "hdpi" : "unpackage/res/icons/72x72.png",

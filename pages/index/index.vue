@@ -73,6 +73,7 @@
 				@back-to-school="backToSchool"
 				@save-coord="handleSaveCoord"
 				@open-school-manager="showSchoolManager = true"
+				@open-map-picker="handleNativeMapPicker"
 			/>
 		</view>
 
@@ -229,6 +230,8 @@
 
 		<web-view v-if="showWeb" :src="currentUrl" />
 		
+		<web-view v-if="showWeb" :src="currentUrl" />
+		
 		<view class="island-container">
 			<view class="island-pill">
 				<view class="island-indicator" :style="{ transform: `translateX(${activeTab * 100}%)` }"></view>
@@ -259,7 +262,8 @@ import {
 	INJECT_MAX_ATTEMPTS, INJECT_INTERVAL_MS, MAX_HISTORY_RECORDS,
 	THEME_COLORS, CAMPUS_COLORS, getSchoolList, saveSchoolList, 
 	getCurrentSchoolId, saveCurrentSchoolId,
-	getCurrentCampusIndex, saveCurrentCampusIndex
+	getCurrentCampusIndex, saveCurrentCampusIndex,
+	COORD_PICKER_URL
 } from '@/utils/constants.js';
 
 export default {
@@ -271,7 +275,10 @@ export default {
 			isGenerating: false, loadingText: '', mouseX: 0, mouseY: 0,
 			useRandomPreset: uni.getStorageSync('useRandomPreset') !== false,
 			fakeLat: 0, fakeLng: 0,
-			historyList: secureGet('historyList') || [],
+			historyList: (() => {
+				const stored = secureGet('historyList');
+				return Array.isArray(stored) ? stored : [];
+			})(),
 			buttonSelector: '.adm-button-primary',
 			showUpdateModal: false,
 			updateInfo: { version: '', log: '', url: '', forceUpdate: false },
@@ -296,7 +303,19 @@ export default {
 			schoolList: [],
 			currentSchoolId: '',
 			currentCampusIndex: 0,
-			editingSchool: null
+			editingSchool: null,
+			showMapPicker: false,
+			pickerUrl: '/static/map.html',
+			pickerTimer: null
+		}
+	},
+	watch: {
+		showMapPicker(val) {
+			if (val) {
+				this.startPickerBridge();
+			} else {
+				if (this.pickerTimer) clearInterval(this.pickerTimer);
+			}
 		}
 	},
 	computed: {
@@ -359,7 +378,21 @@ export default {
 		}
 	},
 	onBackPress() {
-		if (this.showWeb) { this.handleResetApp(); return true; }
+		if (this.showWeb) {
+			if (this.isGenerating) {
+				uni.showModal({
+					title: '打卡正在进行',
+					content: '此时离开可能导致状态丢失，确定要退出吗？',
+					success: (res) => {
+						if (res.confirm) this.handleResetApp();
+					}
+				});
+				return true;
+			}
+			this.handleResetApp();
+			return true;
+		}
+		if (this.showMapPicker) { this.showMapPicker = false; return true; }
 		if (this.showSchoolManager) { this.showSchoolManager = false; return true; }
 		if (this.showSchoolEditor) { this.showSchoolEditor = false; return true; }
 		if (this.activeTab !== 0) { this.activeTab = 0; return true; }
@@ -368,43 +401,16 @@ export default {
 		if (this.showUpdateModal && !this.updateInfo.forceUpdate) { this.showUpdateModal = false; return true; }
 		return false; 
 	},
-	created() {
+	onLoad() {
 		this.initSchoolData();
+	},
+	created() {
 		this.checkAppUpdate();
 		if (this.useRandomPreset) this.randomizePreset();
 		this.checkWarningModal();
 		this.startClock();
-		
-		// #ifdef APP-PLUS
-		if (typeof window !== 'undefined') {
-			window.__handleCheckinResult = (isSuccess, msg) => {
-				const now = new Date();
-				const hh = now.getHours().toString().padStart(2, '0');
-				const mm = now.getMinutes().toString().padStart(2, '0');
-				const ss = now.getSeconds().toString().padStart(2, '0');
-				const timeStr = `${hh}:${mm}:${ss}`;
-				const dateStr = now.toISOString().split('T')[0];
-				
-				this.historyList.unshift({ 
-					time: timeStr, date: dateStr, lat: this.fakeLat, lng: this.fakeLng, 
-					status: isSuccess ? '成功' : '失败', reason: msg || '' 
-				});
-				secureSet('historyList', this.historyList.slice(0, MAX_HISTORY_RECORDS));
-			};
-
-			window.__updateGlobalCoords = (lat, lng) => {
-				this.fakeLat = lat;
-				this.fakeLng = lng;
-				this.localLat = String(lat);
-				this.localLng = String(lng);
-				uni.setStorageSync('fakeLat', lat);
-				uni.setStorageSync('fakeLng', lng);
-			};
-		}
-		// #endif
 	},
 	onUnload() {
-		// 清理所有定时器
 		if (this.timerRef) {
 			clearInterval(this.timerRef);
 			this.timerRef = null;
@@ -415,18 +421,24 @@ export default {
 		}
 	},
 	methods: {
+		__handleBridgeMsg(base64Msg) {
+			try {
+				const decoded = JSON.parse(decodeURIComponent(escape(atob(base64Msg))));
+				if (decoded.type === 'checkin_result') this.onCheckinFinished(decoded.data);
+			} catch (e) {
+				console.error('Bridge decode error', e);
+			}
+		},
 		initSchoolData() {
 			this.schoolList = getSchoolList();
 			this.currentSchoolId = getCurrentSchoolId();
 			this.currentCampusIndex = getCurrentCampusIndex();
 			
-			// 如果没有当前学校，使用第一个
 			if (!this.currentSchool) {
 				this.currentSchoolId = this.schoolList[0].id;
 				saveCurrentSchoolId(this.currentSchoolId);
 			}
 			
-			// 初始化坐标
 			const storedLat = uni.getStorageSync('fakeLat');
 			const storedLng = uni.getStorageSync('fakeLng');
 			if (storedLat && storedLng) {
@@ -461,7 +473,6 @@ export default {
 			this.schoolList.splice(index, 1);
 			saveSchoolList(this.schoolList);
 			
-			// 如果删除的是当前学校，切换到第一个
 			if (school.id === this.currentSchoolId) {
 				this.currentSchoolId = this.schoolList[0].id;
 				saveCurrentSchoolId(this.currentSchoolId);
@@ -486,7 +497,6 @@ export default {
 			const campusCount = this.currentSchool.campuses.length;
 			if (campusCount <= 1) return;
 			
-			// 2个校区直接切换，3个校区显示下拉
 			if (campusCount === 2) {
 				this.currentCampusIndex = (this.currentCampusIndex + 1) % 2;
 				saveCurrentCampusIndex(this.currentCampusIndex);
@@ -551,15 +561,21 @@ export default {
 			uni.showToast({ title: '已切换至随机模式', icon: 'none' });
 		},
 		handleSaveCoord(lat, lng) {
-			this.fakeLat = lat;
-			this.fakeLng = lng;
-			this.localLat = String(lat);
-			this.localLng = String(lng);
+			const nLat = parseFloat(lat);
+			const nLng = parseFloat(lng);
+			if (isNaN(nLat) || isNaN(nLng) || nLat < -90 || nLat > 90 || nLng < -180 || nLng > 180) {
+				uni.showToast({ title: '坐标格式非法', icon: 'none' });
+				return;
+			}
+			this.fakeLat = nLat;
+			this.fakeLng = nLng;
+			this.localLat = String(nLat);
+			this.localLng = String(nLng);
 			this.useRandomPreset = false;
 			uni.setStorageSync('fakeLat', this.fakeLat);
 			uni.setStorageSync('fakeLng', this.fakeLng);
 			uni.setStorageSync('useRandomPreset', false);
-			uni.showToast({ title: '配置已更新', icon: 'none' });
+			uni.showToast({ title: '坐标已同步', icon: 'success' });
 		},
 		editPreset(index) {
 			this.editingPresetIndex = index;
@@ -712,7 +728,12 @@ export default {
 			const tryInjectBurst = () => {
 				if (!this.showWeb) return;
 				const webviews = this.$scope.$getAppWebview().children();
-				if (webviews && webviews.length > 0) webviews[0].evalJS(coreScript);
+				if (webviews && webviews.length > 0) {
+					const wv = webviews[0];
+					// 关键修复：确保子 Webview 拥有 plus API 访问权限，以便调用 parent.evalJS
+					wv.setStyle({ plusrequire: 'ahead' });
+					wv.evalJS(coreScript);
+				}
 				if (injectAttempts++ < INJECT_MAX_ATTEMPTS) setTimeout(tryInjectBurst, INJECT_INTERVAL_MS);
 			};
 			this.$nextTick(() => { tryInjectBurst(); });
@@ -723,7 +744,9 @@ export default {
 					return;
 				}
 				const webviews = this.$scope.$getAppWebview().children();
-				if (webviews && webviews.length > 0) webviews[0].evalJS(coreScript);
+				if (webviews && webviews.length > 0) {
+					webviews[0].evalJS(coreScript);
+				}
 			}, 1000);
 
 			setTimeout(() => { this.loadingText = '注入干扰算法...'; }, 800);
@@ -733,6 +756,79 @@ export default {
 				this.hookStatus = 'active'; 
 			}, 2400);
 			// #endif
+		},
+		// 供 renderjs 调用的桥接方法
+		onCheckinFinished(data) {
+			const { isSuccess, msg } = data;
+			const now = new Date();
+			const hh = now.getHours().toString().padStart(2, '0');
+			const mm = now.getMinutes().toString().padStart(2, '0');
+			const ss = now.getSeconds().toString().padStart(2, '0');
+			const timeStr = `${hh}:${mm}:${ss}`;
+			
+			const year = now.getFullYear();
+			const month = (now.getMonth() + 1).toString().padStart(2, '0');
+			const day = now.getDate().toString().padStart(2, '0');
+			const dateStr = `${year}-${month}-${day}`;
+			
+			this.historyList.unshift({ 
+				time: timeStr, date: dateStr, lat: this.fakeLat, lng: this.fakeLng, 
+				status: isSuccess ? '成功' : '失败', reason: msg || '' 
+			});
+			secureSet('historyList', this.historyList.slice(0, MAX_HISTORY_RECORDS));
+			
+			this.isGenerating = false;
+			this.loadingText = '';
+			this.showWeb = false;
+			
+			console.log('[Bridge] 历史记录已更新，状态已复位');
+		},
+		onCoordsUpdated(data) {
+			const { lat, lng } = data;
+			this.fakeLat = lat;
+			this.fakeLng = lng;
+			this.localLat = String(lat);
+			this.localLng = String(lng);
+			uni.setStorageSync('fakeLat', lat);
+			uni.setStorageSync('fakeLng', lng);
+		},
+		onMapPickerResult(data) {
+			const { lat, lng, name } = data;
+			this.fakeLat = lat;
+			this.fakeLng = lng;
+			this.localLat = String(lat);
+			this.localLng = String(lng);
+			this.useRandomPreset = false;
+			uni.setStorageSync('fakeLat', lat);
+			uni.setStorageSync('fakeLng', lng);
+			uni.setStorageSync('useRandomPreset', false);
+			this.showMapPicker = false;
+			uni.showToast({ title: `位置已锁定: ${name || '所选地点'}`, icon: 'none' });
+		},
+		onMapSelected(data) {
+			this.onMapPickerResult({
+				lat: data.lat,
+				lng: data.lng,
+				name: data.name || '地图精准定位'
+			});
+		},
+		handleNativeMapPicker() {
+			uni.chooseLocation({
+				success: (res) => {
+					this.onMapSelected({
+						lat: res.latitude,
+						lng: res.longitude,
+						name: res.name || res.address
+					});
+				},
+				fail: (err) => {
+					console.warn('Native map failed:', err);
+					uni.showToast({ title: '无法打开系统地图，请检查权限', icon: 'none' });
+				}
+			});
+		},
+		startPickerBridge() {
+			// “拉”模式不需要轮询注入桥接
 		}
 	}
 }
@@ -1023,4 +1119,78 @@ export default {
 	transform: scale(0.96);
 	opacity: 0.9;
 }
+/* 内置地图样式 */
+.map-picker-panel {
+	position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000;
+	background: #0a1630; display: flex; flex-direction: column;
+}
+.map-view { flex: 1; width: 100%; }
+.map-center-pin {
+	position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%);
+	pointer-events: none; z-index: 10;
+}
+.map-center-pin .material-symbols-outlined { font-size: 40px; color: #ff4757; text-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.map-picker-controls {
+	padding: 30px 20px 40px; background: #0a1630; display: flex; flex-direction: column; gap: 16px;
+}
+.map-confirm-btn {
+	height: 52px; background: linear-gradient(135deg, #00d4ff 0%, #005096 100%);
+	color: #fff; border-radius: 26px; display: flex; align-items: center; justify-content: center;
+	font-weight: bold; box-shadow: 0 8px 32px rgba(0,212,255,0.3);
+}
+.map-cancel-btn {
+	height: 52px; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6);
+	border-radius: 26px; display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
 </style>
+
+<script module="mapModule" lang="renderjs">
+export default {
+	mounted() {
+		// 统一桥接处理函数 (修复 Bug 2, 3)
+		window.__handleBridgeMsg = (encodedData) => {
+			try {
+				const jsonStr = decodeURIComponent(escape(atob(encodedData)));
+				const { action, data } = JSON.parse(jsonStr);
+				
+				if (action === 'checkin_result' || action === 'checkin_success') {
+					this.$ownerInstance.callMethod('onCheckinFinished', {
+						isSuccess: data.isSuccess !== false,
+						msg: data.msg || ''
+					});
+				}
+			} catch (e) {
+				console.error('[Renderjs] Bridge Parse Error:', e);
+			}
+		};
+
+		window.__handleCheckinResult = (isSuccess, msg) => {
+			try {
+				if (this.$ownerInstance && typeof this.$ownerInstance.callMethod === 'function') {
+					this.$ownerInstance.callMethod('onCheckinFinished', {
+						isSuccess: !!isSuccess,
+						msg: msg || ''
+					});
+				}
+			} catch (e) {
+				console.error('[Renderjs] Bridge Error:', e);
+			}
+		};
+		
+		window.__updateGlobalCoords = (lat, lng) => {
+			try {
+				if (this.$ownerInstance && typeof this.$ownerInstance.callMethod === 'function') {
+					this.$ownerInstance.callMethod('onCoordsUpdated', {
+						lat: parseFloat(lat),
+						lng: parseFloat(lng)
+					});
+				}
+			} catch (e) {
+				console.error('[Renderjs] Coord Update Error:', e);
+			}
+		};
+		
+		console.log('[Renderjs] Bridge initialized');
+	}
+}
+</script>
