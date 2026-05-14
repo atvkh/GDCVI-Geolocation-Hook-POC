@@ -1,16 +1,29 @@
 <template>
-	<view class="tab-wrapper">
+	<view class="tab-wrapper page-transition" :class="{ 'page-active': isActive }" v-show="isActive">
+		<!-- 底部环境氛围光 -->
+		<view class="bottom-ambient-glow"></view>
+		
 		<view class="glass-card card-home">
-			<view class="card-glow-bg glow-home"></view>
+			<!-- 背景装饰纹理 -->
+			<view class="card-decoration-blur"></view>
+			
 			<view class="card-inner">
-
-				<view class="input-section">
-					<view class="section-header">
-						<text class="section-label">网络反馈</text>
-						<view class="matrix-toggle" @click="showMatrix = true">
-							<text class="material-symbols-outlined icon-small">view_list</text>
+				<view class="page-card-header">
+					<view class="header-left">
+						<text class="material-symbols-outlined page-card-icon">dashboard</text>
+						<text class="page-card-title">控制中心</text>
+					</view>
+					<view class="header-actions">
+						<view class="matrix-toggle-btn" @click="showMatrix = true">
+							<text class="material-symbols-outlined">view_list</text>
 							<text>矩阵库</text>
 						</view>
+					</view>
+				</view>
+				
+				<view class="input-section">
+					<view class="section-header-minimal">
+						<text class="section-label">目标链接</text>
 					</view>
 					
 					<view class="input-wrapper neon-input">
@@ -30,34 +43,23 @@
 					</view>
 				</view>
 
-				<view class="status-monitor-wrapper">
-					<view class="status-monitor">
-						<view class="scanline"></view>
-						<view class="corner-top-left"></view>
-						<view class="corner-bottom-right"></view>
-						
-						<view class="status-header">
-							<view class="status-dot" :class="{ 'is-active': isGenerating }"></view>
-							<text class="status-title">核心系统运行监控</text>
-							<text class="status-ver">V11.4.0 PROXY</text>
-						</view>
-						<view class="status-stream">
-							<view class="status-row">
-								<text class="status-line typing-1">> [引擎] {{ isGenerating ? '深度拦截中...' : '底层代理已就绪' }}</text>
-								<view class="status-bar"><view class="status-bar-inner" :class="{ 'is-loading': isGenerating }"></view></view>
-							</view>
-							<view class="status-row">
-								<text class="status-line typing-2">> [GPS] {{ targetUrl ? '位置已锁定' : '等待注入数据' }}</text>
-								<view class="status-bar"><view class="status-bar-inner" :style="{ width: targetUrl ? '100%' : '20%' }"></view></view>
-							</view>
-							<view class="status-row">
-								<text class="status-line typing-3">> [安全] 混淆隧道已加密</text>
-								<view class="status-bar-pulse"></view>
-							</view>
-						</view>
+				<view class="status-bar-compact">
+					<view class="status-chip">
+						<view class="status-dot-mini" :class="{ 'is-active': isGenerating }"></view>
+						<text>{{ isGenerating ? '拦截中' : '引擎就绪' }}</text>
+					</view>
+					<view class="status-divider"></view>
+					<view class="status-chip">
+						<view class="status-dot-mini" :class="{ 'is-active': targetUrl }"></view>
+						<text>{{ targetUrl ? 'GPS已锁定' : '等待数据' }}</text>
+					</view>
+					<view class="status-divider"></view>
+					<view class="status-chip">
+						<view class="status-dot-mini is-active"></view>
+						<text>加密通道</text>
 					</view>
 				</view>
-				
+
 				<view class="button-group">
 					<button class="btn-cyber" @click="startCheckIn" :class="{'is-generating': isGenerating}">
 						<span class="btn-cyber-text" v-if="!isGenerating">极速打卡 -></span>
@@ -67,20 +69,15 @@
 						</span>
 					</button>
 					
-					<view class="btn-extract" @click="readClipboard">
-						<text>提取链接</text>
-						<text class="material-symbols-outlined">north_east</text>
-					</view>
-
-					<view class="tut-banner" @click="$emit('open-tutorial')">
-						<view class="tut-banner-icon">
-							<text class="material-symbols-outlined">tips_and_updates</text>
+					<view class="secondary-actions">
+						<view class="btn-secondary" @click="readClipboard">
+							<text class="material-symbols-outlined btn-secondary-icon">content_paste</text>
+							<text>提取链接</text>
 						</view>
-						<view class="tut-banner-text">
-							<text class="tut-title-sm">提取纯净链接教程</text>
-							<text class="tut-sub-sm">跳查寝打卡必看流程</text>
+						<view class="btn-secondary btn-tutorial" @click="$emit('open-tutorial')">
+							<text class="material-symbols-outlined btn-secondary-icon">tips_and_updates</text>
+							<text>使用教程</text>
 						</view>
-						<text class="material-symbols-outlined tut-arrow">chevron_right</text>
 					</view>
 				</view>
 
@@ -154,7 +151,8 @@ export default {
 		loadingText: { type: String, default: '正在接管定位...' },
 		mouseX: { type: Number, default: 0 },
 		mouseY: { type: Number, default: 0 },
-		linkPattern: { type: String, default: '' }
+		linkPattern: { type: String, default: '' },
+		isActive: { type: Boolean, default: false }
 	},
 	data() { 
 		return { 
@@ -174,10 +172,7 @@ export default {
 	},
 	computed: {
 		displayInput() {
-			if (this.selectedName) {
-				return `[成员] ${this.selectedName}`;
-			}
-			return this.targetUrl;
+			return this.selectedName ? `[成员] ${this.selectedName}` : this.targetUrl;
 		}
 	},
 	methods: {
@@ -233,9 +228,7 @@ export default {
 			this.manageNewUrl = '';
 			
 			if (this.selectedName === this.manageSelectedUser.name) {
-				this.targetUrl = url; // 直接使用新链接
-				// 强制触发 computed 更新
-				this.$nextTick(() => { this.$forceUpdate(); });
+				this.targetUrl = this.userList[this.manageSelectedIndex].url;
 			}
 		},
 		deleteSelectedUser() {
@@ -288,36 +281,16 @@ export default {
 			this.selectedName = '';
 		},
 		readClipboard() {
-			// #ifdef APP-PLUS
 			uni.getClipboardData({ 
 				success: (res) => { 
-					if(res.data && res.data.trim()) {
+					if(res.data) {
 						this.clearSelection();
 						this.targetUrl = res.data.trim();
 						uni.showToast({ title: '已捕获 URL', icon: 'none' });
-					} else { 
-						uni.showToast({ title: '剪贴板为空', icon: 'none' }); 
-					}
+					} else { uni.showToast({ title: '剪贴板为空', icon: 'none' }); }
 				},
-				fail: (err) => {
-					console.warn('[Clipboard] 读取失败:', err);
-					uni.showToast({ title: '无法读取剪贴板，请手动粘贴', icon: 'none', duration: 2000 });
-				}
+				fail: () => uni.showToast({ title: '无法读取剪贴板', icon: 'none' })
 			});
-			// #endif
-			// #ifndef APP-PLUS
-			navigator.clipboard.readText().then(text => {
-				if (text && text.trim()) {
-					this.clearSelection();
-					this.targetUrl = text.trim();
-					uni.showToast({ title: '已捕获 URL', icon: 'none' });
-				} else {
-					uni.showToast({ title: '剪贴板为空', icon: 'none' });
-				}
-			}).catch(() => {
-				uni.showToast({ title: '无法读取剪贴板，请手动粘贴', icon: 'none' });
-			});
-			// #endif
 		},
 		startCheckIn() {
 			const url = this.targetUrl.trim();
@@ -333,38 +306,52 @@ export default {
 <style scoped>
 .tab-wrapper {
 	width: 100%;
-	padding: 0 0 160px;
+	padding: 0 0 120px; /* 恢复与其他页面一致的顶部位置 */
 	margin: 0;
 	box-sizing: border-box;
-	background-color: #050a1a; /* 显式设置背景色，防止露白 */
 }
-.btn-primary[disabled], .btn-primary:disabled { opacity: 0.6; pointer-events: none; }
-.btn-primary.is-generating { opacity: 0.8; pointer-events: none; }
-.btn-extract.is-generating { opacity: 0.4; pointer-events: none; }
 
 @keyframes dropdown-open {
 	from { opacity: 0; transform: scaleY(0.9); transform-origin: top; }
 	to { opacity: 1; transform: scaleY(1); transform-origin: top; }
 }
-@keyframes sheet-up {
-	from { transform: translateY(20px); opacity: 0; }
-	to { transform: translateY(0); opacity: 1; }
-}
-
 
 .card-home { 
 	border-top: 3px solid var(--color-primary); 
-	padding-top: 24px;
+	padding-top: 24px; /* 恢复标准页间距 */
+	padding-bottom: 35px;
+	position: relative;
+	overflow: hidden;
 }
-.glow-home { top: -60px; left: -60px; background: radial-gradient(circle, rgba(0,95,156,0.25) 0%, transparent 70%); }
+.card-inner { 
+	position: relative; z-index: 10;
+	margin-bottom: 0; 
+}
+.page-card-header {
+	display: flex; align-items: center; justify-content: space-between;
+	margin-bottom: 24px; padding-bottom: 14px;
+	border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-actions { display: flex; gap: 8px; }
+.page-card-title { font-size: 19px; font-weight: 700; color: #fff; }
+.page-card-icon { font-size: 24px; color: var(--color-primary); }
+.matrix-toggle-btn {
+	display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: bold;
+	color: var(--color-primary); padding: 6px 10px; border-radius: 8px; 
+	background: rgba(0, 95, 156, 0.1); border: 1px solid rgba(0, 95, 156, 0.2); 
+	transition: all 0.2s;
+}
+.matrix-toggle-btn:active { transform: scale(0.95); opacity: 0.8; }
+.section-header-minimal { margin-bottom: 10px; }
 
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; color: var(--color-text-main); }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; color: var(--color-text-muted); }
 .matrix-toggle { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--color-info); padding: 4px 8px; border-radius: 8px; background: rgba(0,95,156,0.1); border: 1px solid rgba(0,95,156,0.3); transition: all 0.2s; }
 .matrix-toggle:active { opacity: 0.7; transform: scale(0.95); }
 .icon-small { font-size: 14px; }
 
-.neon-input { position: relative; margin-bottom: 30px !important; background: rgba(0,20,35,0.4); border-radius: 12px; padding: 4px 16px; box-shadow: inset 0 1px 1px rgba(255,255,255,0.08), 0 0 0 1px rgba(0,95,156,0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.3s; display: flex; align-items: center; z-index: 20; }
+.neon-input { position: relative; margin-bottom: 24px; background: rgba(0,20,35,0.4); border-radius: 14px; padding: 4px 16px; box-shadow: inset 0 1px 1px rgba(255,255,255,0.08), 0 0 0 1px rgba(0,95,156,0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.3s; display: flex; align-items: center; z-index: 20; }
 .neon-input:focus-within { box-shadow: 0 0 20px rgba(0,95,156,0.25), inset 0 0 0 1px var(--color-primary); }
 .custom-input { flex: 1; height: 48px; font-size: 14px; color: var(--color-text-main); background: transparent; border: none; outline: none; }
 .clear-icon { font-size: 18px; color: var(--color-text-muted); padding: 4px; margin-left: 8px; }
@@ -377,113 +364,55 @@ export default {
 .dropdown-item:active { background: rgba(0,95,156,0.15); }
 .dropdown-item.empty { color: var(--color-text-muted); text-align: center; cursor: default; }
 
-.btn-primary-sm { 
-	height: 44px; border-radius: 12px; margin: 0; font-size: 14px; font-weight: 600;
-	box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; 
-	background: var(--color-primary); color: #fff;
-	display: flex; align-items: center; justify-content: center;
+.status-bar-compact {
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  padding: 10px 16px;
+  background: rgba(0, 10, 25, 0.4);
+  border-radius: 12px;
+  border: 1px solid rgba(60, 100, 160, 0.1);
+  margin-bottom: 40px; 
+}
+.status-chip {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; font-weight: 600;
+  color: rgba(150, 180, 220, 0.6);
+  letter-spacing: 0.5px;
+  padding: 0 10px;
+}
+.status-divider {
+  width: 1px; height: 12px;
+  background: rgba(100, 140, 200, 0.15);
+}
+.status-dot-mini {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+}
+.status-dot-mini.is-active {
+  background: #00E676;
+  box-shadow: 0 0 6px rgba(0, 230, 118, 0.5);
 }
 
-.button-group { margin-top: 30px; margin-bottom: 20px; }
-.loading-text { font-size: 14px; letter-spacing: 1px; white-space: nowrap; animation: text-fade 0.5s ease; }
+.button-group { display: flex; flex-direction: column; gap: 12px; }
+.loading-text { font-size: 14px; letter-spacing: 1px; white-space: nowrap; }
+@keyframes text-fade { from { opacity: 0; } to { opacity: 1; } }
 
-.status-monitor-wrapper {
-	padding: 2px;
-	background: linear-gradient(135deg, rgba(120, 180, 255, 0.2), transparent 40%, rgba(120, 180, 255, 0.1));
-	border-radius: 16px;
-	margin-bottom: 10px;
-	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-}
-.status-monitor {
-	position: relative;
-	padding: 16px 18px;
-	background: rgba(8, 12, 24, 0.85);
-	border-radius: 14px;
-	overflow: hidden;
-	min-height: 110px; /* 预留固定高度，防止拉伸 */
-	display: flex;
-	flex-direction: column;
-}
-.scanline {
-	position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-	background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-	background-size: 100% 3px, 3px 100%;
-	pointer-events: none; z-index: 5; opacity: 0.4;
-}
-.corner-top-left, .corner-bottom-right {
-	position: absolute; width: 8px; height: 8px; z-index: 10;
-	border-color: rgba(120, 180, 255, 0.5); border-style: solid;
-}
-.corner-top-left { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
-.corner-bottom-right { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
-
-.status-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; position: relative; z-index: 6; }
-.status-dot { width: 6px; height: 6px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; animation: blink 2s infinite; }
-.status-dot.is-active { background: #00E676; box-shadow: 0 0 10px #00E676; animation: blink 0.6s infinite; }
-.status-title { font-size: 11px; font-weight: 800; color: rgba(255, 255, 255, 0.45); letter-spacing: 2px; flex: 1; }
-.status-ver { font-family: monospace; font-size: 9px; color: rgba(120, 180, 255, 0.3); background: rgba(120, 180, 255, 0.1); padding: 2px 6px; border-radius: 4px; }
-.status-stream { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 6; }
-.status-row { 
-	display: flex; 
-	align-items: center; 
-	justify-content: space-between; 
-	gap: 10px; 
-	height: 24px; /* 锁定行高 */
-}
-.status-line { 
-	font-family: 'JetBrains Mono', monospace; font-size: 11px; 
-	color: rgba(120, 180, 255, 0.9); 
-	text-shadow: 0 0 8px rgba(120, 180, 255, 0.5);
-	animation: flicker 4s infinite;
-	white-space: nowrap;
-	overflow: hidden;
-	display: inline-block;
-}
-.status-bar { width: 40px; height: 4px; background: rgba(255, 255, 255, 0.05); border-radius: 2px; overflow: hidden; }
-.status-bar-inner { height: 100%; background: #00E676; width: 0; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 5px #00E676; }
-.status-bar-inner.is-loading { width: 100%; animation: bar-shimmer 1s infinite; }
-.status-bar-pulse { width: 10px; height: 4px; background: #00E676; border-radius: 2px; animation: pulse-rect 1s infinite; box-shadow: 0 0 8px #00E676; }
-
-@keyframes flicker {
-	0%, 100% { opacity: 1; }
-	33% { opacity: 0.95; }
-	34% { opacity: 0.7; }
-	35% { opacity: 0.95; }
-	66% { opacity: 1; }
-	67% { opacity: 0.8; }
-	68% { opacity: 1; }
-}
-@keyframes bar-shimmer { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
-@keyframes pulse-rect { 0% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(0.5); opacity: 0.5; } 100% { transform: scaleX(1); opacity: 1; } }
-
-/* 打字机进场动画优化：不影响外部布局 */
-.typing-1 { animation: typing 0.4s ease-out forwards; }
-.typing-2 { animation: typing 0.4s ease-out forwards 0.15s; opacity: 0; }
-.typing-3 { animation: typing 0.4s ease-out forwards 0.3s; opacity: 0; }
-@keyframes typing { 
-	from { max-width: 0; opacity: 0; transform: translateX(-5px); } 
-	to { max-width: 100%; opacity: 1; transform: translateX(0); } 
-}
-
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-/* 极速打卡按钮 - 厚实果冻玻璃 */
 .btn-cyber {
   position: relative; width: 100%; padding: 18px 0; border-radius: 18px;
   background: linear-gradient(180deg, var(--color-primary-soft) 0%, rgba(0, 60, 120, 0.6) 100%);
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--color-border);
   box-shadow: var(--glass-shadow);
-  cursor: pointer; margin-bottom: 16px;
-  transition: all 0.45s cubic-bezier(0.2, 1.2, 0.3, 1);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 .btn-cyber::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
   background: linear-gradient(180deg, rgba(100, 170, 255, 0.1) 0%, transparent 100%);
-  border-radius: 20px 20px 0 0; pointer-events: none;
+  border-radius: 18px 18px 0 0; pointer-events: none;
 }
 .btn-cyber-text {
-  position: relative; z-index: 2; font-weight: 600; font-size: 17px;
+  position: relative; z-index: 2; font-weight: 700; font-size: 18px;
   color: #ffffff;
   letter-spacing: 0.5px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -501,42 +430,43 @@ export default {
 }
 .btn-cyber.is-generating { opacity: 0.7; pointer-events: none; }
 
-/* 提取链接按钮 - 轻薄玻璃 */
-.btn-extract {
-  background: rgba(15, 30, 60, 0.5);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(60, 100, 160, 0.25);
-  border-radius: 18px; height: 56px;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  color: rgba(180, 210, 255, 0.9);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(80, 140, 220, 0.1);
-  margin-bottom: 16px; transition: all 0.4s cubic-bezier(0.2, 1.2, 0.3, 1);
+.secondary-actions {
+  display: flex; gap: 12px;
 }
-.btn-extract:active { 
+.btn-secondary {
+  position: relative; flex: 1; height: 52px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(0, 80, 160, 0.12) 0%, rgba(0, 60, 140, 0.06) 100%);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(60, 120, 200, 0.2);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  color: rgba(200, 225, 255, 0.9);
+  font-size: 13px; font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.2, 1, 0.3, 1);
+  overflow: hidden;
+}
+.btn-secondary::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 100%);
+  border-radius: 14px 14px 0 0; pointer-events: none;
+}
+.btn-secondary:active { 
   transform: scale(0.96); 
-  background: rgba(20, 40, 75, 0.6);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+.btn-secondary-icon { font-size: 18px; color: rgb(80, 180, 255); position: relative; z-index: 2; }
+.btn-secondary text:last-child { position: relative; z-index: 2; }
+.btn-secondary.btn-tutorial {
+  background: linear-gradient(135deg, rgba(120, 80, 0, 0.12) 0%, rgba(100, 60, 0, 0.06) 100%);
+  border: 1px solid rgba(200, 160, 60, 0.2);
+}
+.btn-secondary.btn-tutorial .btn-secondary-icon {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.6));
 }
 
-.tut-banner { 
-	background: rgba(15, 30, 60, 0.4);
-	backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-	border: 1px solid rgba(60, 100, 160, 0.2);
-	border-radius: 18px; padding: 14px;
-	display: flex; align-items: center; gap: 14px; cursor: pointer;
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-.tut-banner:active { transform: scale(0.98); }
-.tut-banner-icon { 
-	width: 40px; height: 40px; border-radius: 12px; 
-	background: rgba(0, 80, 150, 0.3); 
-	color: rgba(120, 180, 255, 0.9); 
-	display: flex; align-items: center; justify-content: center; 
-}
-.tut-banner-text { flex: 1; display: flex; flex-direction: column; }
-.tut-title-sm { font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, 0.9); }
-.tut-sub-sm { font-size: 12px; color: rgba(255, 255, 255, 0.45); margin-top: 4px; }
-.tut-arrow { color: rgba(255, 255, 255, 0.3); font-size: 20px; }
+.spinning { animation: spin 2s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
 .matrix-drawer-overlay {
 	position: fixed;
@@ -811,4 +741,39 @@ export default {
 .spinning { animation: spin 2s linear infinite; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 @keyframes pulse-dot { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+
+/* 底部氛围光样式 */
+.bottom-ambient-glow {
+	position: fixed;
+	bottom: -60px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 140%;
+	height: 200px;
+	background: radial-gradient(50% 50% at 50% 100%, var(--color-primary) 0%, rgba(0, 95, 156, 0.2) 45%, transparent 100%);
+	filter: blur(50px);
+	opacity: 0.6;
+	pointer-events: none;
+	z-index: 0;
+	animation: ambient-pulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-pulse {
+	0% { opacity: 0.4; transform: translateX(-50%) scale(1); }
+	100% { opacity: 0.8; transform: translateX(-50%) scale(1.15); }
+}
+
+/* 卡片背景装饰 */
+.card-decoration-blur {
+	position: absolute;
+	top: -50px;
+	right: -50px;
+	width: 150px;
+	height: 150px;
+	background: radial-gradient(circle, var(--color-primary-soft) 0%, transparent 70%);
+	filter: blur(30px);
+	opacity: 0.3;
+	pointer-events: none;
+	z-index: 1;
+}
 </style>
