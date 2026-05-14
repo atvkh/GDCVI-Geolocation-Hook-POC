@@ -228,6 +228,7 @@
 		</view>
 
 		<web-view v-if="showWeb" :src="currentUrl" />
+		<web-view v-if="showMapPicker" :src="pickerUrl" />
 		
 		<view class="island-container">
 			<view class="island-pill">
@@ -782,21 +783,32 @@ export default {
 			});
 		},
 		handleNativeMapPicker() {
-			uni.chooseLocation({
-				success: (res) => {
-					this.onMapSelected({
-						lat: res.latitude,
-						lng: res.longitude,
-						name: res.name || res.address
-					});
-				},
-				fail: (err) => {
-					console.warn('Native map failed:', err);
-					uni.showToast({ title: '无法打开系统地图，请检查权限', icon: 'none' });
-				}
-			});
+			this.showMapPicker = true;
 		},
 		startPickerBridge() {
+			if (this.pickerTimer) clearInterval(this.pickerTimer);
+			this.pickerTimer = setInterval(() => {
+				// #ifdef APP-PLUS
+				const webviews = this.$scope.$getAppWebview().children();
+				if (webviews && webviews.length > 0) {
+					const wv = webviews[webviews.length - 1];
+					wv.evalJS("window.selectedLocation ? JSON.stringify(window.selectedLocation) : null", (res) => {
+						if (res) {
+							try {
+								const loc = JSON.parse(res);
+								if (loc.lat && loc.lng) {
+									this.onMapPickerResult({
+										lat: loc.lat,
+										lng: loc.lng,
+										name: '地图选点'
+									});
+								}
+							} catch (e) {}
+						}
+					});
+				}
+				// #endif
+			}, 500);
 		}
 	}
 }
