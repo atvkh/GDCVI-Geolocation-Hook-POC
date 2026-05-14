@@ -10,7 +10,7 @@ export const INJECT_INTERVAL_MS = 20;
 export const MAX_HISTORY_RECORDS = 15;
 
 // 坐标拾取器配置
-export const TENCENT_MAP_KEY = 'EX5BZ-DUMLQ-T5M56-4T2XI-TVY3Z-LFFZL';
+export const TENCENT_MAP_KEY = 'VE4BZ-A7G65-BFLIL-IK5MS-ITGET-UFF6U';
 export const COORD_PICKER_URL = `https://apis.map.qq.com/tools/locpicker?search=1&type=1&key=${TENCENT_MAP_KEY}&referer=PhantomSign`;
 
 // 预设主题色 - 高端应用风格
