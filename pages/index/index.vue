@@ -260,8 +260,7 @@ import {
 	INJECT_MAX_ATTEMPTS, INJECT_INTERVAL_MS, MAX_HISTORY_RECORDS,
 	THEME_COLORS, CAMPUS_COLORS, getSchoolList, saveSchoolList, 
 	getCurrentSchoolId, saveCurrentSchoolId,
-	getCurrentCampusIndex, saveCurrentCampusIndex,
-	COORD_PICKER_URL
+	getCurrentCampusIndex, saveCurrentCampusIndex
 } from '@/utils/constants.js';
 
 export default {

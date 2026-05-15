@@ -4,40 +4,86 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
     <title>坐标拾取</title>
-    <script src="https://map.qq.com/api/js?v=2.exp&key=VE4BZ-A7G65-BFLIL-IK5MS-ITGET-UFF6U"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0a1630; }
         #container { width: 100%; height: 100%; }
         .center-marker {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -100%);
-            pointer-events: none; z-index: 10;
-            width: 32px; height: 32px;
+            pointer-events: none; z-index: 1000;
+            font-size: 36px; color: #ff4757;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .coord-display {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: #00E676;
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 12px; font-family: monospace;
+            z-index: 1000; pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div id="container"></div>
-    <img class="center-marker" src="https://3gimg.qq.com/lightmap/components/locationPicker2/dist/assets/marker.png">
+    <div class="center-marker">📍</div>
+    <div class="coord-display" id="coordDisplay">23.73, 113.08</div>
 
     <script>
+        // WGS84 转 GCJ-02
+        function wgs84ToGcj02(lat, lng) {
+            const a = 6378245.0;
+            const ee = 0.00669342162296594323;
+            let dLat = transformLat(lng - 105.0, lat - 35.0);
+            let dLng = transformLng(lng - 105.0, lat - 35.0);
+            const radLat = lat / 180.0 * Math.PI;
+            let magic = Math.sin(radLat);
+            magic = 1 - ee * magic * magic;
+            const sqrtMagic = Math.sqrt(magic);
+            dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * Math.PI);
+            dLng = (dLng * 180.0) / (a / sqrtMagic * Math.cos(radLat) * Math.PI);
+            return { lat: lat + dLat, lng: lng + dLng };
+        }
+        function transformLat(x, y) {
+            const pi = 3.14159265358979324;
+            let ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+            ret += (20.0 * Math.sin(6.0 * x * pi) + 20.0 * Math.sin(2.0 * x * pi)) * 2.0 / 3.0;
+            ret += (20.0 * Math.sin(y * pi) + 40.0 * Math.sin(y / 3.0 * pi)) * 2.0 / 3.0;
+            ret += (160.0 * Math.sin(y / 12.0 * pi) + 320 * Math.sin(y * pi / 30.0)) * 2.0 / 3.0;
+            return ret;
+        }
+        function transformLng(x, y) {
+            const pi = 3.14159265358979324;
+            let ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+            ret += (20.0 * Math.sin(6.0 * x * pi) + 20.0 * Math.sin(2.0 * x * pi)) * 2.0 / 3.0;
+            ret += (20.0 * Math.sin(x * pi) + 40.0 * Math.sin(x / 3.0 * pi)) * 2.0 / 3.0;
+            ret += (150.0 * Math.sin(x / 12.0 * pi) + 300.0 * Math.sin(x / 30.0 * pi)) * 2.0 / 3.0;
+            return ret;
+        }
+
         var map;
-        // 全局变量，供父页面抓取
-        window.selectedLocation = { lat: 23.73, lng: 113.08 };
+        window.selectedLocation = { lat: 23.73513, lng: 113.088972 };
 
         function init() {
-            map = new qq.maps.Map(document.getElementById("container"), {
-                center: new qq.maps.LatLng(23.73, 113.08),
+            map = L.map('container', {
+                center: [23.73513, 113.088972],
                 zoom: 16
             });
 
-            // 只要地图停止移动，就更新全局变量
-            qq.maps.event.addListener(map, 'idle', function() {
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            map.on('moveend', function() {
                 var center = map.getCenter();
-                window.selectedLocation = {
-                    lat: center.getLat(),
-                    lng: center.getLng()
-                };
+                var wgsLat = center.lat;
+                var wgsLng = center.lng;
+                var gcj = wgs84ToGcj02(wgsLat, wgsLng);
+                window.selectedLocation = { lat: gcj.lat, lng: gcj.lng };
+                document.getElementById('coordDisplay').textContent = 
+                    gcj.lat.toFixed(6) + ', ' + gcj.lng.toFixed(6);
             });
         }
         window.onload = init;
