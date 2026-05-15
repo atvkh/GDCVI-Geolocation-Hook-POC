@@ -7,6 +7,24 @@
 		<view class="settings-scroll-area">
 			<view class="settings-field">
 				<view class="settings-field-header">
+					<text class="settings-label">地址搜索</text>
+				</view>
+				<view class="search-bar">
+					<input type="text" v-model="searchAddress" class="search-input" placeholder="输入地址查询坐标..." @confirm="geocodeAddress" />
+					<view class="btn-search" @click="geocodeAddress">
+						<text class="material-symbols-outlined">search</text>
+					</view>
+				</view>
+				<view class="search-results" v-if="searchResults.length > 0">
+					<view class="search-result-item" v-for="(item, index) in searchResults" :key="index" @click="selectSearchResult(item)">
+						<text class="search-result-title">{{ item.title }}</text>
+						<text class="search-result-addr">{{ item.address }}</text>
+					</view>
+				</view>
+			</view>
+
+			<view class="settings-field">
+				<view class="settings-field-header">
 					<text class="settings-label">目标坐标 (Lat / Lng)</text>
 					<view class="btn-map-picker" @click="$emit('open-map-picker')">
 						<text class="material-symbols-outlined">map</text>
@@ -93,7 +111,9 @@ export default {
 		return {
 			localLat: String(this.fakeLat),
 			localLng: String(this.fakeLng),
-			showPresetDropdown: false
+			showPresetDropdown: false,
+			searchAddress: '',
+			searchResults: []
 		}
 	},
 	watch: {
@@ -101,6 +121,42 @@ export default {
 		fakeLng(val) { this.localLng = String(val); }
 	},
 	methods: {
+		geocodeAddress() {
+			const address = this.searchAddress.trim();
+			if (!address) return;
+			
+			const key = 'VE4BZ-A7G65-BFLIL-IK5MS-ITGET-UFF6U';
+			uni.request({
+				url: `https://apis.map.qq.com/ws/geocoder/v1/?address=${encodeURIComponent(address)}&key=${key}`,
+				method: 'GET',
+				success: (res) => {
+					if (res.data && res.data.status === 0 && res.data.result) {
+						const result = res.data.result;
+						if (result.location) {
+							this.searchResults = [{
+								title: address,
+								address: result.formatted_addresses?.recommend || result.address || '',
+								lat: result.location.lat,
+								lng: result.location.lng
+							}];
+						}
+					} else {
+						this.searchResults = [];
+						uni.showToast({ title: '未找到该地址', icon: 'none' });
+					}
+				},
+				fail: () => {
+					uni.showToast({ title: '搜索失败，请检查网络', icon: 'none' });
+				}
+			});
+		},
+		selectSearchResult(item) {
+			this.localLat = String(item.lat);
+			this.localLng = String(item.lng);
+			this.searchResults = [];
+			this.searchAddress = item.title;
+			uni.showToast({ title: '坐标已填入', icon: 'success' });
+		},
 		togglePresetDropdown() {
 			this.showPresetDropdown = !this.showPresetDropdown;
 		},
@@ -222,6 +278,44 @@ export default {
 }
 .btn-map-picker:active { transform: scale(0.95); background: rgba(var(--color-primary-rgb, 50, 140, 220), 0.25); }
 .btn-map-picker .material-symbols-outlined { font-size: 16px; }
+
+.search-bar {
+	display: flex; gap: 8px; margin-bottom: 8px;
+}
+.search-input {
+	flex: 1; height: 44px; padding: 0 14px;
+	background: rgba(15, 30, 60, 0.6);
+	border: 1px solid rgba(60, 100, 160, 0.2);
+	border-radius: 12px; border-right: none;
+	color: rgba(255, 255, 255, 0.9); font-size: 14px;
+}
+.search-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+.btn-search {
+	width: 44px; height: 44px; border-radius: 12px;
+	background: var(--color-primary);
+	display: flex; align-items: center; justify-content: center;
+}
+.btn-search .material-symbols-outlined { font-size: 20px; color: #fff; }
+.btn-search:active { opacity: 0.8; }
+.search-results {
+	background: rgba(10, 20, 40, 0.95);
+	border: 1px solid rgba(60, 100, 160, 0.3);
+	border-radius: 12px; overflow: hidden;
+	margin-bottom: 8px;
+}
+.search-result-item {
+	padding: 12px 14px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:active { background: rgba(0, 95, 156, 0.15); }
+.search-result-title {
+	font-size: 14px; color: rgba(255, 255, 255, 0.9); font-weight: 500;
+	display: block; margin-bottom: 4px;
+}
+.search-result-addr {
+	font-size: 12px; color: rgba(255, 255, 255, 0.4);
+}
 
 .coord-input-group { display: flex; gap: 12px; }
 
