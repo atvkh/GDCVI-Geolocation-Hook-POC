@@ -259,8 +259,8 @@ export default {
 		},
 		updatePresetCoord(campusIndex, presetIndex, lat, lng) {
 			if (this.formData.campuses[campusIndex] && this.formData.campuses[campusIndex].presets[presetIndex]) {
-				this.formData.campuses[campusIndex].presets[presetIndex].lat = String(lat);
-				this.formData.campuses[campusIndex].presets[presetIndex].lng = String(lng);
+				this.formData.campuses[campusIndex].presets[presetIndex].lat = Number(lat);
+				this.formData.campuses[campusIndex].presets[presetIndex].lng = Number(lng);
 			}
 		},
 		save() {

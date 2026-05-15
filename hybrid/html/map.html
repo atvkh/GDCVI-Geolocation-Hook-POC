@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
     <title>坐标拾取</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="leaflet.min.css" />
+    <script src="leaflet.min.js"></script>
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0a1630; }
         #container { width: 100%; height: 100%; }
@@ -111,21 +111,21 @@
                 var wgsInit = gcj02ToWgs84(INIT_GCJ_LAT, INIT_GCJ_LNG);
 
                 map = L.map('container', {
-                    center: [wgsInit.lat, wgsInit.lng],
+                    center: [INIT_GCJ_LAT, INIT_GCJ_LNG],
                     zoom: 16
                 });
 
-                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap'
+                L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+                    maxZoom: 18,
+                    subdomains: ['1','2','3','4'],
+                    attribution: '&copy; AutoNavi'
                 }).addTo(map);
 
                 map.on('moveend', function() {
                     var center = map.getCenter();
-                    var gcj = wgs84ToGcj02(center.lat, center.lng);
-                    window.selectedLocation = { lat: gcj.lat, lng: gcj.lng };
+                    window.selectedLocation = { lat: center.lat, lng: center.lng };
                     document.getElementById('coordDisplay').textContent =
-                        gcj.lat.toFixed(6) + ', ' + gcj.lng.toFixed(6);
+                        center.lat.toFixed(6) + ', ' + center.lng.toFixed(6);
                 });
 
                 map.on('dragstart', function() {
@@ -189,8 +189,7 @@
                     window.selectedLocation = window.selectedLocation || { lat: INIT_GCJ_LAT, lng: INIT_GCJ_LNG };
                 } else {
                     var center = map.getCenter();
-                    var gcj = wgs84ToGcj02(center.lat, center.lng);
-                    window.selectedLocation = { lat: gcj.lat, lng: gcj.lng };
+                    window.selectedLocation = { lat: center.lat, lng: center.lng };
                 }
                 window.__confirmed = true;
                 sendResult(window.selectedLocation);

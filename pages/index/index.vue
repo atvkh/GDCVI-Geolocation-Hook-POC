@@ -229,7 +229,6 @@
 			</view>
 		</view>
 
-		<web-view v-if="showWeb" :src="currentUrl" />
 		<web-view v-if="showMapPicker" :src="pickerUrl" />
 		
 		<view class="island-container">
@@ -304,9 +303,10 @@ export default {
 			currentCampusIndex: 0,
 			editingSchool: null,
 			showMapPicker: false,
-			pickerUrl: '/static/map.html',
+			pickerUrl: '/hybrid/html/map.html',
 			pickerTimer: null,
-			mapPickerTarget: null
+			mapPickerTarget: null,
+			checkinWebview: null
 		}
 	},
 	watch: {
@@ -411,6 +411,18 @@ export default {
 		// #ifdef APP-PLUS
 		if (typeof window !== 'undefined') {
 			window.__handleCheckinResult = (isSuccess, msg) => {
+				if (this._checkinResultProcessing) return;
+				this._checkinResultProcessing = true;
+				
+				// #ifdef APP-PLUS
+				try {
+					if (this.checkinWebview) {
+						this.checkinWebview.close();
+						this.checkinWebview = null;
+					}
+				} catch(e) {}
+				// #endif
+				
 				const now = new Date();
 				const hh = now.getHours().toString().padStart(2, '0');
 				const mm = now.getMinutes().toString().padStart(2, '0');
@@ -429,10 +441,12 @@ export default {
 				this.showWeb = false;
 				
 				uni.showToast({ 
-					title: isSuccess ? '打卡成功' : '打卡失败: ' + (msg || ''), 
+					title: isSuccess ? '打卡成功' : '打卡失败：' + (msg || ''), 
 					icon: isSuccess ? 'success' : 'none',
 					duration: 2500
 				});
+				
+				setTimeout(() => { this._checkinResultProcessing = false; }, 3000);
 			};
 
 			window.__updateGlobalCoords = (lat, lng) => {
@@ -442,6 +456,27 @@ export default {
 				this.localLng = String(lng);
 				uni.setStorageSync('fakeLat', lat);
 				uni.setStorageSync('fakeLng', lng);
+			};
+
+			window.__handleBridgeMsg = (payload) => {
+				try {
+					var decoded = JSON.parse(decodeURIComponent(escape(atob(payload))));
+					if (decoded.action === 'hook_verify') {
+						var d = decoded.data;
+						console.log('[HOOK VERIFY] isHooked=' + d.isHooked + ' lat=' + d.lat + ' lng=' + d.lng + ' fakeLat=' + d.fakeLat + ' fakeLng=' + d.fakeLng);
+						if (d.isHooked) {
+							this.hookStatus = 'active';
+						} else {
+							this.hookStatus = 'fail';
+							console.error('[HOOK VERIFY] 定位注入失败！返回坐标与预设不匹配');
+						}
+					} else if (decoded.action === 'checkin_result') {
+						var d = decoded.data;
+						window.__handleCheckinResult(d.isSuccess, d.msg);
+					}
+				} catch(e) {
+					console.error('[BRIDGE] 解码失败', e);
+				}
 			};
 
 			window.__onMapPickerResult = (loc) => {
@@ -457,16 +492,26 @@ export default {
 		// #endif
 	},
 	onUnload() {
-		// 清理所有定时器
-		if (this.timerRef) {
-			clearInterval(this.timerRef);
-			this.timerRef = null;
-		}
-		if (this.persistentInjectTimer) {
-			clearInterval(this.persistentInjectTimer);
-			this.persistentInjectTimer = null;
-		}
-	},
+			// 清理所有定时器
+			if (this.timerRef) {
+				clearInterval(this.timerRef);
+				this.timerRef = null;
+			}
+			if (this.persistentInjectTimer) {
+				clearInterval(this.persistentInjectTimer);
+				this.persistentInjectTimer = null;
+			}
+			
+			// #ifdef APP-PLUS
+			// 关闭原生 webview
+			try {
+				if (this.checkinWebview) {
+					this.checkinWebview.close();
+					this.checkinWebview = null;
+				}
+			} catch(e) {}
+			// #endif
+		},
 	methods: {
 		initSchoolData() {
 			this.schoolList = getSchoolList();
@@ -598,6 +643,12 @@ export default {
 			this.localLng = String(loc.lng);
 			this.selectedPresetIndex = index;
 			this.selectedPresetName = loc.name;
+			this.fakeLat = loc.lat;
+			this.fakeLng = loc.lng;
+			this.useRandomPreset = false;
+			uni.setStorageSync('fakeLat', loc.lat);
+			uni.setStorageSync('fakeLng', loc.lng);
+			uni.setStorageSync('useRandomPreset', false);
 		},
 		backToSchool() {
 			this.randomizePreset();
@@ -721,7 +772,20 @@ export default {
 			this.mouseX = x; this.mouseY = y;
 		},
 		handleResetApp() {
-			this.isGenerating = false; this.hookStatus = 'inactive'; this.showWeb = false; 
+			this.isGenerating = false; 
+			this.hookStatus = 'inactive'; 
+			this.showWeb = false; 
+			
+			// #ifdef APP-PLUS
+			// 关闭之前创建的原生 webview
+			try {
+				if (this.checkinWebview) {
+					this.checkinWebview.close();
+					this.checkinWebview = null;
+				}
+			} catch(e) {}
+			// #endif
+			
 			this.randomizePreset();
 			
 			if (this.persistentInjectTimer) {
@@ -748,44 +812,101 @@ export default {
 		handleStartCheckIn(url) {
 			this.isGenerating = true;
 			this.loadingText = '正在构建分析容器...';
-			setTimeout(() => {
-				this.currentUrl = url; this.showWeb = true; 
-				this.$nextTick(() => { this.startAggressiveInjection(); });
-			}, 500);
-		},
-		startAggressiveInjection() {
+			this.currentUrl = url;
+
 			// #ifdef APP-PLUS
-			const coreScript = generateCoreScript(this.fakeLat, this.fakeLng, this.buttonSelector, this.defaultCoords.lat, this.defaultCoords.lng);
-			
-			if (this.persistentInjectTimer) {
-				clearInterval(this.persistentInjectTimer);
+			const self = this;
+			const coreScript = generateCoreScript(
+				self.fakeLat, self.fakeLng,
+				self.buttonSelector,
+				self.defaultCoords.lat, self.defaultCoords.lng
+			);
+
+			// 先写脚本文件，再创建 webview（appendJsFile 在页面脚本执行前注入）
+			self._writeHookFileAndLaunch(url, coreScript);
+			// #endif
+		},
+		_writeHookFileAndLaunch(url, coreScript) {
+			const self = this;
+			const filePath = '_doc/cyber_hook.js';
+			plus.io.resolveLocalFileSystemURL('_doc/', function(dirEntry) {
+				dirEntry.getFile('cyber_hook.js', { create: true }, function(fileEntry) {
+					fileEntry.createWriter(function(writer) {
+						writer.onwriteend = function() {
+							self._createWebview(url, coreScript, filePath);
+						};
+						writer.onerror = function() {
+							self._createWebview(url, coreScript, null);
+						};
+						writer.write(coreScript);
+					}, function() {
+						self._createWebview(url, coreScript, null);
+					});
+				}, function() {
+					self._createWebview(url, coreScript, null);
+				});
+			}, function() {
+				self._createWebview(url, coreScript, null);
+			});
+		},
+		_createWebview(url, coreScript, hookFilePath) {
+			const self = this;
+			const wvOptions = {
+				top: '0px',
+				bottom: '0px',
+				visible: false,
+				scrollable: false,
+				progressIndicator: true,
+				androidScrollBarStyle: 'overlay'
+			};
+			if (hookFilePath) {
+				wvOptions.appendJsFile = hookFilePath;
 			}
 
-			let injectAttempts = 0;
-			const tryInjectBurst = () => {
-				if (!this.showWeb) return;
-				const webviews = this.$scope.$getAppWebview().children();
-				if (webviews && webviews.length > 0) webviews[0].evalJS(coreScript);
-				if (injectAttempts++ < INJECT_MAX_ATTEMPTS) setTimeout(tryInjectBurst, INJECT_INTERVAL_MS);
-			};
-			this.$nextTick(() => { tryInjectBurst(); });
+			const wv = plus.webview.create(url, 'cyber_checkin_' + Date.now(), wvOptions);
+			self.checkinWebview = wv;
 
-			this.persistentInjectTimer = setInterval(() => {
-				if (!this.showWeb) {
-					clearInterval(this.persistentInjectTimer);
+			wv.addEventListener('progressChanged', () => {
+				try { wv.evalJS(coreScript); } catch(e) {}
+			}, false);
+
+			wv.addEventListener('loaded', () => {
+				try { wv.evalJS(coreScript); } catch(e) {}
+			}, false);
+
+			let injectAttempts = 0;
+			const injectBurst = () => {
+				if (!wv || !self.isGenerating) return;
+				try { wv.evalJS(coreScript); } catch(e) {}
+				if (injectAttempts++ < 150) {
+					setTimeout(injectBurst, 20);
+				}
+			};
+			injectBurst();
+
+			if (self.persistentInjectTimer) {
+				clearInterval(self.persistentInjectTimer);
+			}
+			self.persistentInjectTimer = setInterval(() => {
+				if (!self.isGenerating || !wv) {
+					clearInterval(self.persistentInjectTimer);
 					return;
 				}
-				const webviews = this.$scope.$getAppWebview().children();
-				if (webviews && webviews.length > 0) webviews[0].evalJS(coreScript);
+				try { wv.evalJS(coreScript); } catch(e) {}
 			}, 1000);
 
-			setTimeout(() => { this.loadingText = '注入干扰算法...'; }, 800);
-			setTimeout(() => { this.loadingText = '代理核心接口...'; }, 1600);
-			setTimeout(() => { 
-				this.loadingText = '监听系统状态...'; 
-				this.hookStatus = 'active'; 
-			}, 2400);
-			// #endif
+			setTimeout(() => {
+				wv.show();
+				self.showWeb = true;
+				self.loadingText = '定位已注入，等待页面加载...';
+				
+				setTimeout(() => { self.loadingText = '注入干扰算法...'; }, 800);
+				setTimeout(() => { self.loadingText = '代理核心接口...'; }, 1600);
+				setTimeout(() => { 
+					self.loadingText = '监听系统状态...'; 
+					self.hookStatus = 'active'; 
+				}, 2400);
+			}, 800);
 		},
 		onMapPickerResult(data) {
 			const { lat, lng, name } = data;
@@ -797,6 +918,12 @@ export default {
 					this.mapPickerTarget.presetIndex,
 					lat, lng
 				);
+				this.fakeLat = lat;
+				this.fakeLng = lng;
+				this.useRandomPreset = false;
+				uni.setStorageSync('fakeLat', lat);
+				uni.setStorageSync('fakeLng', lng);
+				uni.setStorageSync('useRandomPreset', false);
 				this.showMapPicker = false;
 				uni.showToast({ title: `坐标已填入: ${name || '所选地点'}`, icon: 'none' });
 				return;

@@ -1,142 +1,140 @@
-// utils/injectScript.js
-
 export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat, defaultLng) => {
 	return `(function(){
 		if(window.__CYBER_HOOK_ACTIVE__) return;
 		window.__CYBER_HOOK_ACTIVE__ = true;
-		
-		let F_LAT = parseFloat(${fakeLat});
-		let F_LNG = parseFloat(${fakeLng});
-		const D_LAT = parseFloat(${defaultLat});
-		const D_LNG = parseFloat(${defaultLng});
-		
-		const getJitter = () => (Math.random() - 0.5) * 0.00004; 
-		const getFakeData = () => ({
-			lat: F_LAT + getJitter(),
-			lng: F_LNG + getJitter(),
-			accuracy: 10 + Math.random() * 5
-		});
 
-		const origToString = Function.prototype.toString;
-		const proxyToString = new Proxy(origToString, {
-			apply(target, thisArg, args) {
-				if (thisArg && thisArg.__cyber_name) {
-					return 'function ' + thisArg.__cyber_name + '() { [native code] }';
-				}
-				return Reflect.apply(target, thisArg, args);
-			}
-		});
+		var F_LAT = ${fakeLat};
+		var F_LNG = ${fakeLng};
+
+		var PI = 3.1415926535897932384626;
+		var a = 6378245.0;
+		var ee = 0.00669342162296594323;
+
+		var transformLat = function(x, y) {
+			var ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+			ret += (20.0 * Math.sin(6.0 * x * PI) + 20.0 * Math.sin(2.0 * x * PI)) * 2.0 / 3.0;
+			ret += (20.0 * Math.sin(y * PI) + 40.0 * Math.sin(y / 3.0 * PI)) * 2.0 / 3.0;
+			ret += (160.0 * Math.sin(y / 12.0 * PI) + 320 * Math.sin(y * PI / 30.0)) * 2.0 / 3.0;
+			return ret;
+		};
+
+		var transformLng = function(x, y) {
+			var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+			ret += (20.0 * Math.sin(6.0 * x * PI) + 20.0 * Math.sin(2.0 * x * PI)) * 2.0 / 3.0;
+			ret += (20.0 * Math.sin(x * PI) + 40.0 * Math.sin(x / 3.0 * PI)) * 2.0 / 3.0;
+			ret += (150.0 * Math.sin(x / 12.0 * PI) + 300.0 * Math.sin(x / 30.0 * PI)) * 2.0 / 3.0;
+			return ret;
+		};
+
+		var gcj02towgs84 = function(lng, lat) {
+			var dlat = transformLat(lng - 105.0, lat - 35.0);
+			var dlng = transformLng(lng - 105.0, lat - 35.0);
+			var radlat = lat / 180.0 * PI;
+			var magic = Math.sin(radlat);
+			magic = 1 - ee * magic * magic;
+			var sqrtmagic = Math.sqrt(magic);
+			dlat = (dlat * 180.0) / ((a * (1 - ee)) / (magic * sqrtmagic) * PI);
+			dlng = (dlng * 180.0) / (a / sqrtmagic * Math.cos(radlat) * PI);
+			return [lng * 2 - (lng + dlng), lat * 2 - (lat + dlat)];
+		};
+
+		var getFakeData = function() {
+			var jitter = function() { return (Math.random() - 0.5) * 0.00004; };
+			return { lat: F_LAT + jitter(), lng: F_LNG + jitter(), accuracy: 10 + Math.random() * 5 };
+		};
+
+		var origToString = Function.prototype.toString;
 		Object.defineProperty(Function.prototype, 'toString', {
-			value: proxyToString,
-			configurable: true,
-			writable: true
+			value: new Proxy(origToString, {
+				apply: function(target, thisArg, args) {
+					if (thisArg && thisArg.__cyber_name) return 'function ' + thisArg.__cyber_name + '() { [native code] }';
+					return Reflect.apply(target, thisArg, args);
+				}
+			}), configurable: true, writable: true
 		});
 
 		try {
-			const origIframeSrcDesc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src');
+			var origIframeSrcDesc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src');
 			if (origIframeSrcDesc) {
-				const newSet = new Proxy(origIframeSrcDesc.set, {
-					apply(target, thisArg, args) {
-						let val = args[0];
-						if (val && typeof val === 'string' && val.includes('geolocation')) {
-							val = 'about:blank';
-						}
-						return Reflect.apply(target, thisArg, [val]);
+				var newSet = new Proxy(origIframeSrcDesc.set, {
+					apply: function(target, thisArg, args) {
+						if (args[0] && typeof args[0] === 'string' && args[0].includes('geolocation')) args[0] = 'about:blank';
+						return Reflect.apply(target, thisArg, args);
 					}
 				});
 				newSet.__cyber_name = 'set src';
-				Object.defineProperty(HTMLIFrameElement.prototype, 'src', {
-					set: newSet,
-					get: origIframeSrcDesc.get,
-					configurable: origIframeSrcDesc.configurable,
-					enumerable: origIframeSrcDesc.enumerable
-				});
+				Object.defineProperty(HTMLIFrameElement.prototype, 'src', { set: newSet, get: origIframeSrcDesc.get, configurable: origIframeSrcDesc.configurable, enumerable: origIframeSrcDesc.enumerable });
 			}
-		} catch(e) { console.warn('[CyberHook] iframe src proxy error:', e); }
+		} catch(e) {}
 
-		const observer = new MutationObserver(mutations => {
-			mutations.forEach(m => {
-				m.addedNodes.forEach(node => {
-					if (node.tagName === 'IFRAME' && node.src && node.src.includes('geolocation')) {
-						node.src = 'about:blank';
+		var hookW3C = function(origMethod, name) {
+			if (typeof origMethod !== 'function') return origMethod;
+			var proxy = new Proxy(origMethod, {
+				apply: function(target, thisArg, args) {
+					var suc = args[0];
+					if (typeof suc === 'function') {
+						var fd = getFakeData();
+						var wgs = gcj02towgs84(fd.lng, fd.lat);
+						setTimeout(function() { suc({coords:{latitude: wgs[1], longitude: wgs[0], accuracy: fd.accuracy}, timestamp:Date.now()}); }, 50);
 					}
-				});
+					return name === 'watchPosition' ? Math.floor(Math.random() * 10000) : undefined;
+				}
 			});
-		});
-		if(document.documentElement) observer.observe(document.documentElement, { childList: true, subtree: true });
+			proxy.__cyber_name = name;
+			return proxy;
+		};
 
 		if (window.Geolocation && Geolocation.prototype) {
-			const origGet = Geolocation.prototype.getCurrentPosition;
-			const origWatch = Geolocation.prototype.watchPosition;
-
-			if (origGet) {
-				Geolocation.prototype.getCurrentPosition = new Proxy(origGet, {
-					apply(target, thisArg, args) {
-						const suc = args[0];
-						if (typeof suc === 'function') {
-							const fd = getFakeData();
-							setTimeout(() => suc({coords:{latitude:fd.lat, longitude:fd.lng, accuracy:fd.accuracy}, timestamp:Date.now()}), 50);
-						}
-					}
+			try {
+				Object.defineProperty(Geolocation.prototype, 'getCurrentPosition', {
+					value: hookW3C(Geolocation.prototype.getCurrentPosition, 'getCurrentPosition'),
+					configurable: false, writable: false
 				});
-				Geolocation.prototype.getCurrentPosition.__cyber_name = 'getCurrentPosition';
-			}
-
-			if (origWatch) {
-				Geolocation.prototype.watchPosition = new Proxy(origWatch, {
-					apply(target, thisArg, args) {
-						const suc = args[0];
-						if (typeof suc === 'function') {
-							const fd = getFakeData();
-							setTimeout(() => suc({coords:{latitude:fd.lat, longitude:fd.lng, accuracy:fd.accuracy}, timestamp:Date.now()}), 50);
-						}
-						return Math.floor(Math.random() * 10000);
-					}
+				Object.defineProperty(Geolocation.prototype, 'watchPosition', {
+					value: hookW3C(Geolocation.prototype.watchPosition, 'watchPosition'),
+					configurable: false, writable: false
 				});
-				Geolocation.prototype.watchPosition.__cyber_name = 'watchPosition';
-			}
-		} else if (navigator.geolocation) {
-			const origGet = navigator.geolocation.getCurrentPosition;
-			if(origGet) {
-				navigator.geolocation.getCurrentPosition = new Proxy(origGet, {
-					apply(target, thisArg, args) {
-						const suc = args[0];
-						if(typeof suc === 'function') {
-							const fd = getFakeData();
-							setTimeout(() => suc({coords:{latitude:fd.lat, longitude:fd.lng, accuracy:fd.accuracy}, timestamp:Date.now()}), 50);
-						}
-					}
-				});
-				navigator.geolocation.getCurrentPosition.__cyber_name = 'getCurrentPosition';
-			}
+			} catch(e) {}
 		}
 
-		const proxyCache = new WeakSet();
-		const hookTencentGeo = (OrigGeo) => {
-			if (proxyCache.has(OrigGeo)) return OrigGeo;
-			const HookedGeo = new Proxy(OrigGeo, {
-				construct(target, args) {
-					const instance = Reflect.construct(target, args);
-					if (proxyCache.has(instance)) return instance;
+		if (navigator.geolocation) {
+			try {
+				var geoProxy = new Proxy(navigator.geolocation, {
+					get: function(target, prop) {
+						if (prop === 'getCurrentPosition') return hookW3C(target[prop], 'getCurrentPosition');
+						if (prop === 'watchPosition') return hookW3C(target[prop], 'watchPosition');
+						return typeof target[prop] === 'function' ? target[prop].bind(target) : target[prop];
+					}
+				});
+				Object.defineProperty(navigator, 'geolocation', {
+					value: geoProxy,
+					configurable: false,
+					writable: false,
+					enumerable: true
+				});
+			} catch(e) {}
+		}
 
-					const InstanceProxy = new Proxy(instance, {
-						get(target2, prop) {
+		var proxyCache = new WeakSet();
+		var hookTencentGeo = function(OrigGeo) {
+			if (proxyCache.has(OrigGeo)) return OrigGeo;
+			var HookedGeo = new Proxy(OrigGeo, {
+				construct: function(target, args) {
+					var instance = Reflect.construct(target, args);
+					if (proxyCache.has(instance)) return instance;
+					var InstanceProxy = new Proxy(instance, {
+						get: function(target2, prop) {
 							if (prop === 'getLocation' || prop === 'getIpLocation') {
-								const fakeMethod = function(suc, err, opt) {
+								var fakeMethod = function(suc) {
 									if (suc) {
-										const fd = getFakeData();
-										setTimeout(() => suc({
-											module: 'geolocation', type: 'h5',
-											lat: fd.lat, lng: fd.lng, accuracy: fd.accuracy,
-											nation: '中国', province: '广东省', city: '清远市', adcode: '441802',
-											__cyber_fake__: true
-										}), 50);
+										var fd = getFakeData();
+										setTimeout(function() { suc({ module: 'geolocation', type: 'h5', lat: fd.lat, lng: fd.lng, accuracy: fd.accuracy, nation: '中国', province: '广东省', city: '清远市', adcode: '441802', __cyber_fake__: true }); }, 50);
 									}
 								};
 								fakeMethod.__cyber_name = prop;
 								return fakeMethod;
 							}
-							const val = Reflect.get(target2, prop);
+							var val = Reflect.get(target2, prop);
 							return typeof val === 'function' ? val.bind(target2) : val;
 						}
 					});
@@ -148,25 +146,23 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			return HookedGeo;
 		};
 
-		let _qq = window.qq;
+		var _qq = window.qq;
 		Object.defineProperty(window, 'qq', {
-			get() {
+			get: function() {
 				if (_qq && !proxyCache.has(_qq)) {
 					_qq = new Proxy(_qq, {
-						get(target, prop) {
+						get: function(target, prop) {
 							if (prop === 'maps') {
-								const maps = Reflect.get(target, prop);
+								var maps = Reflect.get(target, prop);
 								if (maps && !proxyCache.has(maps)) {
-									const mapsProxy = new Proxy(maps, {
-										get(target2, prop2) {
-											if (prop2 === 'Geolocation') return hookTencentGeo(Reflect.get(target2, prop2));
-											return Reflect.get(target2, prop2);
+									var mapsProxy = new Proxy(maps, {
+										get: function(target2, prop2) {
+											return prop2 === 'Geolocation' ? hookTencentGeo(Reflect.get(target2, prop2)) : Reflect.get(target2, prop2);
 										}
 									});
 									proxyCache.add(mapsProxy);
 									return mapsProxy;
 								}
-								return maps;
 							}
 							return Reflect.get(target, prop);
 						}
@@ -175,276 +171,191 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 				}
 				return _qq;
 			},
-			set(v) { _qq = v; },
+			set: function(v) { _qq = v; },
 			configurable: true
 		});
 
-		const origAddEvent = window.addEventListener;
-		const proxyAddEvent = new Proxy(origAddEvent, {
-			apply(target, thisArg, args) {
-				const type = args[0];
-				const handler = args[1];
-				if (type === 'message' && typeof handler === 'function') {
-					const secureHandler = function(e) {
-						if (e.data && e.data.module === 'geolocation') {
-							if (!e.data.__cyber_fake__) return; 
-						}
-						return handler.apply(this, arguments);
-					};
-					args[1] = secureHandler;
-				}
-				return Reflect.apply(target, thisArg, args);
-			}
-		});
-		proxyAddEvent.__cyber_name = 'addEventListener';
-		window.addEventListener = proxyAddEvent;
-
-		setInterval(() => {
-			const fd = getFakeData();
-			window.postMessage({
-				module: 'geolocation', type: 'geolocation',
-				lat: fd.lat, lng: fd.lng, accuracy: fd.accuracy,
-				nation: '中国', province: '广东省', city: '清远市', adcode: '441802',
-				__cyber_fake__: true
-			}, '*');
-		}, 50);
-
-		const ensureStyles = () => {
-			if(!document.getElementById('cyber_anim_styles')) {
-				const style = document.createElement('style');
-				style.id = 'cyber_anim_styles';
-				style.innerHTML = ':root { --cyber-primary: #00E676; --cyber-success: #00E676; --cyber-info: #38bdf8; --cyber-danger: #ff453a; --cyber-bg: rgba(10, 10, 12, 0.9); } @keyframes cyber-pop { 0% { transform: translate(-50%, -40%); opacity: 0; } 100% { transform: translate(-50%, -50%); opacity: 1; } } @keyframes cyber-slide-down { 0% { top: -20px; opacity: 0; } 100% { top: 60px; opacity: 1; } }';
-				const root = document.head || document.documentElement || document.body;
-				if (root) root.appendChild(style);
-			}
-		};
-
-		const ensureHUD = () => {
-			if (document.getElementById('cyber_hud')) return;
-			const monitor = document.createElement('div');
-			monitor.id = 'cyber_hud';
-			monitor.style.cssText = 'position:fixed;top:40px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);border:1px solid rgba(0,230,118,0.4);color:#00E676;padding:6px 14px;border-radius:100px;font-size:10px;font-weight:900;z-index:2147483647;backdrop-filter:blur(10px);box-shadow:0 8px 24px rgba(0,0,0,0.5);display:flex;align-items:center;gap:8px;font-family:monospace;pointer-events:none;letter-spacing:1px;';
-			monitor.innerHTML = '<div style="width:6px;height:6px;border-radius:50%;background:#00E676;box-shadow:0 0 8px #00E676;animation:pulse 2s infinite;"></div><span>GEO-PROXY ACTIVE</span>';
-			const root = document.body || document.documentElement;
-			if (root) root.appendChild(monitor);
-		};
-
-		const syncToApp = () => {
+		var sendToUniApp = function(action, data) {
 			try {
-				if(window.plus) {
-					const wv = plus.webview.currentWebview();
-					const parent = wv.parent() || wv.opener();
-					if(parent) parent.evalJS("if(window.__updateGlobalCoords) window.__updateGlobalCoords("+F_LAT+", "+F_LNG+")");
-				}
-			} catch(e){ console.warn('[CyberHook] syncToApp error:', e); }
-		};
-
-		const uiWatchdog = () => {
-			try {
-				ensureStyles();
-				ensureHUD();
-			} catch (e) { console.warn('[CyberHook] uiWatchdog error:', e); }
-		};
-		uiWatchdog();
-		setInterval(uiWatchdog, 1500);
-
-		window.showConfirmBox = function() {
-			if (document.getElementById('cyber_confirm')) return;
-			const box = document.createElement('div');
-			box.id = 'cyber_confirm';
-			box.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:var(--cyber-bg);border:1px solid var(--cyber-primary);color:#fff;padding:24px;border-radius:24px;z-index:2147483647;backdrop-filter:blur(20px);box-shadow:0 0 40px rgba(0,230,118,0.3);text-align:center;width:80%;max-width:320px;font-family:monospace;animation: cyber-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);';
-			box.innerHTML = '<div style="font-size:18px;font-weight:900;margin-bottom:12px;color:var(--cyber-primary);text-shadow:0 0 10px rgba(0,230,118,0.8);">操作确认</div><div style="font-size:13px;color:#a1a1aa;margin-bottom:24px;line-height:1.6;">已锁定至目标区域，是否执行业务请求？</div><div style="display:flex;gap:12px;"><button id="btn_cancel_ck" style="flex:1;padding:12px;border:none;border-radius:12px;background:rgba(255,255,255,0.05);color:#a1a1aa;font-weight:bold;">取消</button><button id="btn_confirm_ck" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--cyber-primary);color:#050505;font-weight:900;box-shadow:0 0 15px rgba(0,230,118,0.4);">确认执行</button></div>';
-			
-			const root = document.body || document.documentElement;
-			if (root) root.appendChild(box);
-
-			const cancelBtn = document.getElementById('btn_cancel_ck');
-			if (cancelBtn) cancelBtn.onclick = () => { box.remove(); };
-			
-			const confirmBtn = document.getElementById('btn_confirm_ck');
-			if (confirmBtn) confirmBtn.onclick = () => {
-				window.__CHECKIN_PENDING_UNTIL = Date.now() + 45000;
-				box.innerHTML = '<div style="font-size:15px;color:var(--cyber-primary);font-weight:bold;padding:10px 0;">执行中...</div>';
-				setTimeout(() => {
-					box.remove();
-					if (!document.body) return;
-					let targetBtn = null;
-					try {
-						const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-						let node;
-						while (node = walker.nextNode()) {
-							const text = node.nodeValue.trim();
-							if (text === '签到' || text === '打卡' || text === '立即签到' || text === '立即打卡') {
-								targetBtn = node.parentElement.closest('button, [role="button"], .adm-button, .van-button, .weui-btn') || node.parentElement;
-								break;
-							}
-						}
-					} catch(e) { console.warn('[CyberHook] TreeWalker error:', e); }
-					
-					if (targetBtn) {
-						window.__AUTO_CLICKED__ = true;
-						targetBtn.click();
+				if (window.plus) {
+					var wv = plus.webview.currentWebview();
+					var parent = wv.parent() || wv.opener();
+					if (parent) {
+						var payload = btoa(unescape(encodeURIComponent(JSON.stringify({ action: action, data: data }))));
+						parent.evalJS("if(window.__handleBridgeMsg) window.__handleBridgeMsg('" + payload + "')");
 					} else {
-						alert("未能检索到触发节点，请手动操作页面。");
-					}
-				}, 300);
-			};
-		};
-
-		window.__CYBER_BOX_SHOWN = false;
-		setInterval(() => {
-			try {
-				if (window.__CYBER_BOX_SHOWN || window.__AUTO_CLICKED__) return;
-				if (!document.body) return;
-
-				let btnFound = null;
-				const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-				let node;
-				while (node = walker.nextNode()) {
-					const text = node.nodeValue.trim();
-					if (text === '签到' || text === '打卡' || text === '立即签到' || text === '立即打卡') {
-						btnFound = node.parentElement;
-						break;
-					}
-				}
-
-				if (btnFound) {
-					const btnWrapper = btnFound.closest('button, [role="button"], .adm-button, .van-button, .weui-btn') || btnFound;
-					const isBtnDisabled = btnWrapper.disabled || 
-										  btnWrapper.classList.contains('adm-button-disabled') || 
-										  btnWrapper.classList.contains('van-button--disabled') ||
-										  btnWrapper.className.includes('disabled') ||
-										  btnWrapper.getAttribute('aria-disabled') === 'true';
-					
-					const pageText = document.body.innerText || "";
-					const inSafeZone = pageText.includes('可以进行签到') || pageText.includes('已在指定区域内');
-					const isVisible = btnWrapper.offsetWidth > 0 && btnWrapper.offsetHeight > 0;
-
-					if (isVisible && (!isBtnDisabled || inSafeZone)) {
-						window.__CYBER_BOX_SHOWN = true;
-						if(typeof window.showConfirmBox === 'function') {
-							window.showConfirmBox();
+						var all = plus.webview.all();
+						for (var i = 0; i < all.length; i++) {
+							try {
+								var w = all[i];
+								if (w && w.id !== wv.id) {
+									var payload = btoa(unescape(encodeURIComponent(JSON.stringify({ action: action, data: data }))));
+									w.evalJS("if(window.__handleBridgeMsg) window.__handleBridgeMsg('" + payload + "')");
+								}
+							} catch(e2) {}
 						}
 					}
 				}
-			} catch(e) { console.warn('[CyberHook] button detection error:', e); }
-		}, 500);
-
-		const showToast = (isSuccess, msg) => {
-			const color = isSuccess ? 'var(--cyber-success)' : 'var(--cyber-danger)';
-			const title = isSuccess ? '请求成功' : '请求失败';
-			const toast = document.createElement('div');
-			toast.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--cyber-bg);border:1px solid '+color+';color:'+color+';padding:14px 24px;border-radius:30px;font-size:15px;font-weight:900;z-index:2147483647;backdrop-filter:blur(20px);box-shadow:0 0 30px '+color+'50;display:flex;align-items:center;gap:10px;animation: cyber-slide-down 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);white-space:nowrap;font-family:monospace;';
-			toast.innerHTML = title + '<span style="font-size:12px;opacity:0.8;font-weight:normal;max-width:180px;overflow:hidden;text-overflow:ellipsis;">' + msg + '</span>';
-			
-			const root = document.body || document.documentElement;
-			if (root) root.appendChild(toast);
-
-			try {
-				if(window.plus) {
-					const wv = plus.webview.currentWebview();
-					const parent = wv.parent() || wv.opener();
-					if(parent) {
-						const encodedMsg = encodeURIComponent(msg || '');
-						parent.evalJS("(function(){try{if(window.__handleCheckinResult) window.__handleCheckinResult(" + (isSuccess ? 'true' : 'false') + ", decodeURIComponent('" + encodedMsg + "'))}catch(e){console.warn('__handleCheckinResult error:',e)}})()");
-					}
-				}
-			} catch(e){ console.warn('[CyberHook] showToast evalJS error:', e); }
-			setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4000);
+			} catch (e) {}
 		};
 
-		const origOpen = XMLHttpRequest.prototype.open;
-		XMLHttpRequest.prototype.open = function(method, url) {
-			this._method = method;
-			this._url = url;
-			return origOpen.apply(this, arguments);
-		};
-		const isCheckinTrackingActive = () => {
-			const pendingUntil = Number(window.__CHECKIN_PENDING_UNTIL || 0);
-			return !!window.__AUTO_CLICKED__ || Date.now() < pendingUntil;
-		};
-		const resetCheckinTracking = () => {
-			window.__AUTO_CLICKED__ = false;
-			window.__CHECKIN_PENDING_UNTIL = 0;
-		};
-
-		const origSend = XMLHttpRequest.prototype.send;
+		var origOpen = XMLHttpRequest.prototype.open;
+		XMLHttpRequest.prototype.open = function(method, url) { this._method = method; this._url = url; return origOpen.apply(this, arguments); };
+		var origSend = XMLHttpRequest.prototype.send;
 		XMLHttpRequest.prototype.send = function() {
 			this.addEventListener('load', function() {
-				if (isCheckinTrackingActive()) {
+				if (window.__AUTO_CLICKED__) {
 					try {
-						let res = {};
-						try { res = JSON.parse(this.responseText); } catch(e) { res = {}; }
-						let msg = res.message || res.msg || res.error || '';
-						if (typeof msg !== 'string') msg = String(msg || '');
-
-						let isSuccess = false;
-						if (msg.includes('成功')) {
-							isSuccess = true;
-						} else if (msg.includes('失败') || msg.includes('不在') || msg.includes('未到') || msg.includes('不允许') || msg.includes('异常') || msg.includes('无法') || msg.includes('距离太远')) {
-							isSuccess = false;
-						} else if (res.code !== undefined || res.success !== undefined) {
-							isSuccess = (res.code === 200 || res.code === 0 || res.success === true);
-						} else {
-							isSuccess = (this.status >= 200 && this.status < 300);
-						}
-
+						var res = JSON.parse(this.responseText);
+						var msg = res.message || res.msg || res.error || '';
+						var isSuccess = false;
+						if (msg.includes('成功')) { isSuccess = true; }
+						else if (msg.match(/(失败|不在|未到|不允许|异常|无法|太远)/)) { isSuccess = false; }
+						else { isSuccess = (res.code === 200 || res.code === 0 || res.success === true); }
 						if (!msg) msg = isSuccess ? '已完成' : '状态非预期';
-
-						const hud = document.getElementById('cyber_hud');
-						if(hud) hud.style.display = 'none';
-
-						showToast(isSuccess, msg);
-						resetCheckinTracking();
-					} catch(e) {
-						console.warn('[CyberHook] XHR response parse error:', e);
-						resetCheckinTracking();
-					}
+						sendToUniApp('checkin_result', { isSuccess: isSuccess, msg: msg });
+						window.__AUTO_CLICKED__ = false;
+					} catch (e) {}
 				}
 			});
 			return origSend.apply(this, arguments);
 		};
 
-		const origFetch = window.fetch;
-		if (origFetch) {
-			window.fetch = function() {
-				return origFetch.apply(this, arguments).then(response => {
-					if (isCheckinTrackingActive()) {
-						const clonedResponse = response.clone();
-						clonedResponse.text().then(text => {
-							try {
-								let res = {};
-								try { res = JSON.parse(text); } catch(e) { res = {}; }
-								let msg = res.message || res.msg || res.error || '';
-								if (typeof msg !== 'string') msg = String(msg || '');
-								
-								let isSuccess = false;
-								if (msg.includes('成功')) {
-									isSuccess = true;
-								} else if (msg.includes('失败') || msg.includes('不在') || msg.includes('未到') || msg.includes('不允许') || msg.includes('异常') || msg.includes('无法') || msg.includes('距离太远')) {
-									isSuccess = false;
-								} else if (res.code !== undefined || res.success !== undefined) {
-									isSuccess = (res.code === 200 || res.code === 0 || res.success === true);
-								} else {
-									isSuccess = response.ok;
-								}
-
-								if (!msg) msg = isSuccess ? '已完成' : '状态非预期';
-
-								const hud = document.getElementById('cyber_hud');
-								if(hud) hud.style.display = 'none';
-
-								showToast(isSuccess, msg);
-								resetCheckinTracking();
-							} catch(e) {
-								console.warn('[CyberHook] fetch response parse error:', e);
-								resetCheckinTracking();
-							}
-						});
+		var origFetch = window.fetch;
+		window.fetch = function() {
+			var promise = origFetch.apply(this, arguments);
+			if (window.__AUTO_CLICKED__) {
+				promise.then(function(resp) {
+					if (resp.clone) {
+						resp.clone().json().then(function(data) {
+							var msg = data.message || data.msg || data.error || '';
+							var isSuccess = (data.code === 200 || data.code === 0 || data.success === true || msg.indexOf('成功') !== -1);
+							sendToUniApp('checkin_result', { isSuccess: isSuccess, msg: msg });
+							window.__AUTO_CLICKED__ = false;
+						}).catch(function(){});
 					}
-					return response;
-				});
-			};
+				}).catch(function(){});
+			}
+			return promise;
+		};
+
+		(function(){
+			var hud = document.createElement('div');
+			hud.id = 'cyber_hud';
+			hud.style.cssText = 'position:fixed;top:48px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#00E676;padding:4px 10px;border-radius:8px;font-size:11px;font-family:monospace;z-index:2147483647;pointer-events:none;white-space:nowrap;';
+			hud.textContent = 'GEO-PROXY ACTIVE';
+			document.addEventListener('DOMContentLoaded', function() {
+				document.body.appendChild(hud);
+			});
+			if (document.body) document.body.appendChild(hud);
+		})();
+
+		(function(){
+			var verifyHud = document.getElementById('cyber_hud');
+			try {
+				navigator.geolocation.getCurrentPosition(function(pos) {
+					var lat = pos.coords.latitude;
+					var lng = pos.coords.longitude;
+					var wgs = gcj02towgs84(F_LNG, F_LAT);
+					var isHooked = (Math.abs(lat - wgs[1]) < 0.01 && Math.abs(lng - wgs[0]) < 0.01);
+					if (verifyHud) {
+						verifyHud.textContent = isHooked ? 'HOOK OK ' + lat.toFixed(4) + ',' + lng.toFixed(4) : 'HOOK FAIL';
+						verifyHud.style.color = isHooked ? '#00E676' : '#FF5252';
+					}
+					sendToUniApp('hook_verify', { isHooked: isHooked, lat: lat, lng: lng, fakeLat: F_LAT, fakeLng: F_LNG });
+				}, function(err) {
+					if (verifyHud) {
+						verifyHud.textContent = 'GEO ERR: ' + err.message;
+						verifyHud.style.color = '#FF5252';
+					}
+				}, { timeout: 5000 });
+			} catch(e) {
+				if (verifyHud) {
+					verifyHud.textContent = 'HOOK EXCEPTION';
+					verifyHud.style.color = '#FF5252';
+				}
+			}
+		})();
+
+		try {
+			if (window.plus) {
+				var wv = plus.webview.currentWebview();
+				var parent = wv.parent() || wv.opener();
+				if (parent) {
+					parent.evalJS("if(window.__updateGlobalCoords) window.__updateGlobalCoords(" + F_LAT + "," + F_LNG + ")");
+				}
+			}
+		} catch(e) {}
+
+		function isButtonDisabled(btn) {
+			if (!btn) return true;
+			if (btn.disabled || btn.getAttribute('disabled') !== null) return true;
+			if (btn.className && btn.className.includes('disabled')) return true;
+			if (btn.getAttribute('aria-disabled') === 'true') return true;
+			return false;
 		}
+
+		var confirmBoxShown = false;
+		var checkCheckInButton = function() {
+			if (confirmBoxShown) return;
+			var targetBtn = null;
+			var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+			var node;
+			while ((node = walker.nextNode())) {
+				var text = node.nodeValue.trim();
+				if (['签到', '打卡', '立即签到', '立即打卡'].includes(text)) {
+					targetBtn = node.parentElement.closest('button, [role="button"], .adm-button, .van-button, .weui-btn') || node.parentElement;
+					break;
+				}
+			}
+
+			if (targetBtn && targetBtn.offsetWidth > 0) {
+				var isBtnDisabled = isButtonDisabled(targetBtn);
+				var pageText = document.body.innerText || "";
+				var inSafeZone = pageText.includes('可以进行签到') || pageText.includes('已在指定区域内');
+
+				if (!isBtnDisabled || inSafeZone) {
+					confirmBoxShown = true;
+					var overlay = document.createElement('div');
+					overlay.id = 'cyber_confirm';
+					overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.35);z-index:2147483647;display:flex;align-items:center;justify-content:center;';
+
+					var box = document.createElement('div');
+					box.style.cssText = 'background:rgba(255,255,255,0.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:24px;padding:28px 24px 24px;width:82%;max-width:300px;box-shadow:0 20px 60px rgba(0,0,0,0.25);text-align:center;';
+					box.innerHTML = '<div style="font-size:18px;font-weight:700;color:#1d1d1f;margin-bottom:12px;">操作确认</div><div style="font-size:14px;color:#86868b;margin-bottom:24px;line-height:1.5;">已锁定至目标区域，是否执行签到操作？</div><div style="display:flex;gap:12px;"><button id="btn_cancel_ck" style="flex:1;padding:14px;border:none;border-radius:14px;background:#e5e5ea;color:#8e8e93;font-weight:600;font-size:15px;cursor:pointer;">取消</button><button id="btn_confirm_ck" style="flex:1;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,#32d74b,#28a745);color:#fff;font-weight:600;font-size:15px;cursor:pointer;">确认执行</button></div>';
+
+					overlay.appendChild(box);
+					document.body.appendChild(overlay);
+
+					document.getElementById('btn_cancel_ck').onclick = function() { overlay.remove(); confirmBoxShown = false; };
+					document.getElementById('btn_confirm_ck').onclick = function() {
+						box.innerHTML = '<div style="font-size:16px;color:#28a745;font-weight:bold;padding:10px 0;">执行中...</div>';
+						setTimeout(function() {
+							overlay.remove();
+							window.__AUTO_CLICKED__ = true;
+							targetBtn.click();
+						}, 300);
+					};
+				}
+			}
+		};
+
+		var domObserver = new MutationObserver(function() { checkCheckInButton(); });
+		document.addEventListener('DOMContentLoaded', function() {
+			checkCheckInButton();
+			domObserver.observe(document.body, { childList: true, subtree: true });
+		});
+
+		window.showToast = function(msg) {
+			var t = document.createElement('div');
+			t.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:#fff;padding:12px 24px;border-radius:12px;z-index:2147483647;font-size:14px;pointer-events:none;';
+			t.textContent = msg;
+			document.body.appendChild(t);
+			setTimeout(function() { t.remove(); }, 2000);
+		};
+
+		window.__handleCheckinResult = function(isSuccess, msg) {
+			sendToUniApp('checkin_result', { isSuccess: isSuccess, msg: msg });
+		};
 	})();`;
 };

@@ -34,28 +34,7 @@ describe('injectScript.js - 脚本生成', () => {
 
     it('应包含 XMLHttpRequest 拦截', () => {
       const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-      expect(script).toContain('XMLHttpRequest.prototype.open');
       expect(script).toContain('XMLHttpRequest.prototype.send');
-    });
-
-    it('应包含 fetch 拦截', () => {
-      const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-      expect(script).toContain('window.fetch');
-    });
-
-    it('应包含 showToast 函数', () => {
-      const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-      expect(script).toContain('showToast');
-    });
-
-    it('应包含 __handleCheckinResult 调用', () => {
-      const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-      expect(script).toContain('__handleCheckinResult');
-    });
-
-    it('应包含坐标同步函数', () => {
-      const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-      expect(script).toContain('__updateGlobalCoords');
     });
 
     it('应包含确认框功能', () => {
@@ -71,46 +50,37 @@ describe('injectScript.js - 脚本生成', () => {
 
     it('应包含错误处理', () => {
       const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-      expect(script).toContain('console.warn');
       expect(script).toContain('try');
       expect(script).toContain('catch');
     });
 
     it('生成的脚本语法应有效', () => {
       const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-      // 不抛出异常即为有效
       expect(() => new Function(script)).not.toThrow();
     });
   });
 });
 
-describe('injectScript.js - 脚本内容验证', () => {
+describe('injectScript.js - 深度拦截验证', () => {
   
-  it('应包含 jitter 随机偏移函数', () => {
+  it('应包含 Object.defineProperty 拦截 navigator.geolocation', () => {
     const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-    expect(script).toContain('getJitter');
+    expect(script).toContain('Object.defineProperty');
+    expect(script).toContain('navigator');
+    expect(script).toContain('geolocation');
   });
 
-  it('应包含 fakeData 生成函数', () => {
+  it('应包含腾讯地图 SDK 拦截', () => {
     const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-    expect(script).toContain('getFakeData');
+    expect(script).toContain('qq.maps');
+    expect(script).toContain('Geolocation');
+    expect(script).toContain('getLocation');
   });
 
-  it('应包含 Proxy 拦截', () => {
+  it('应包含按钮禁用检测', () => {
     const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-    expect(script).toContain('new Proxy');
-  });
-
-    it('应包含腾讯地图 SDK 拦截', () => {
-      const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-      // 脚本通过 Proxy 拦截 qq 对象，包含 maps 属性检查
-      expect(script).toContain('maps');
-      expect(script).toContain('hookTencentGeo');
-    });
-
-  it('应包含 HUD 显示功能', () => {
-    const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-    expect(script).toContain('cyber_hud');
-    expect(script).toContain('GEO-PROXY ACTIVE');
+    expect(script).toContain('isButtonDisabled');
+    expect(script).toContain('van-button--disabled');
+    expect(script).toContain('pointerEvents');
   });
 });

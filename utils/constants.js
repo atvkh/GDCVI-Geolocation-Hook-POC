@@ -160,10 +160,12 @@ export const DEFAULT_SCHOOLS = [
 	}
 ];
 
+import { secureGet, secureSet } from '@/utils/crypto.js';
+
 // 获取学校列表
 export const getSchoolList = () => {
-	const stored = uni.getStorageSync('schoolList');
-	if (stored && stored.length > 0) {
+	const stored = secureGet('schoolList');
+	if (Array.isArray(stored) && stored.length > 0) {
 		return stored;
 	}
 	return DEFAULT_SCHOOLS;
@@ -171,7 +173,7 @@ export const getSchoolList = () => {
 
 // 保存学校列表
 export const saveSchoolList = (list) => {
-	uni.setStorageSync('schoolList', list);
+	secureSet('schoolList', list);
 };
 
 // 获取当前学校ID

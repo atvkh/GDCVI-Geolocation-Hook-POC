@@ -175,6 +175,11 @@ PhantomSign/
 │   ├── 📄 TabSettings.vue            # 设置组件 - 坐标配置管理
 │   ├── 📄 SchoolManager.vue          # 学校管理组件
 │   └── 📄 SchoolEditor.vue           # 学校编辑组件
+├── 📁 hybrid/
+│   └── 📁 html/
+│       ├── 📄 map.html               # 地图坐标拾取器
+│       ├── 📄 leaflet.min.js         # Leaflet 地图引擎
+│       └── 📄 leaflet.min.css        # Leaflet 样式
 ├── 📁 utils/
 │   ├── 📄 constants.js               # 常量配置中心
 │   ├── 📄 crypto.js                  # 加密存储工具
@@ -337,8 +342,16 @@ npm run test:coverage
 ✦ 可视化选点：集成地图坐标拾取器，支持原生 API 与内嵌 H5 双模式精准选点
 ✦ 通讯协议升级：核心通讯链路升级为 Base64 编码，解决复杂字符通讯异常
 ✦ 拦截逻辑加固：修复 fetch API 流消费冲突，提升极端环境下的结果回传成功率
-✦ 历史记录修复：修复特定流程下“打卡成功但历史未显示”的漏记问题
-✦ 按钮识别增强：补齐“立即打卡”文案识别并完善签到结果回传稳定性
+✦ 历史记录修复：修复特定流程下"打卡成功但历史未显示"的漏记问题
+✦ 按钮识别增强：补齐"立即打卡"文案识别并完善签到结果回传稳定性
+✦ 定位注入重构：Proxy construct 深度拦截腾讯地图 SDK，GCJ-02/WGS-84 双坐标系自适应
+✦ 通讯链路修复：sendToUniApp 降级遍历 plus.webview.all()，解决独立 webview 回传失败
+✦ 签到结果防重入：__handleCheckinResult 增加 _checkinResultProcessing 锁，防止重复记录
+✦ 弹窗体验优化：确认弹窗升级为毛玻璃风格，增加按钮禁用状态检测避免误弹
+✦ 注入验证：HUD 实时显示 HOOK OK/FAIL 状态，回传验证结果至主界面
+✦ 数据安全加固：schoolList 存储迁移至 secureSet/secureGet 加密存储
+✦ 地图选点兼容：迁移至 /hybrid/html/ 目录，修复打包后 web-view 加载白屏
+✦ 坐标类型统一：SchoolEditor 预设点坐标统一为 Number 类型
 ```
 
 ### v11.2.0
