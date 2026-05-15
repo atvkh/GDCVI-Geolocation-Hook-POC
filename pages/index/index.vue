@@ -303,7 +303,7 @@ export default {
 			currentCampusIndex: 0,
 			editingSchool: null,
 			showMapPicker: false,
-			pickerUrl: COORD_PICKER_URL,
+			pickerUrl: '/static/map.html',
 			pickerTimer: null
 		}
 	},
