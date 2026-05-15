@@ -9,6 +9,8 @@ export const INJECT_MAX_ATTEMPTS = 150;
 export const INJECT_INTERVAL_MS = 20;   
 export const MAX_HISTORY_RECORDS = 15;
 
+export const COORD_PICKER_URL = 'https://api.map.baidu.com/lbsapi/getpoint/index.html';
+
 // 预设主题色 - 高端应用风格
 export const THEME_COLORS = [
 	{ 

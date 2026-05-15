@@ -90,10 +90,12 @@
 		
 		<!-- 学校编辑弹窗 -->
 		<SchoolEditor 
+			ref="schoolEditor"
 			:visible="showSchoolEditor"
 			:schoolData="editingSchool"
 			@close="showSchoolEditor = false"
 			@save="handleSaveSchool"
+			@open-map-picker="handleSchoolMapPicker"
 		/>
 
 		<!-- 预设点编辑弹窗 -->
@@ -303,15 +305,29 @@ export default {
 			editingSchool: null,
 			showMapPicker: false,
 			pickerUrl: '/static/map.html',
-			pickerTimer: null
+			pickerTimer: null,
+			mapPickerTarget: null
 		}
 	},
 	watch: {
 		showMapPicker(val) {
 			if (val) {
+				try {
+					// #ifdef APP-PLUS
+					if (typeof plus !== 'undefined' && plus.storage) plus.storage.removeItem('__map_picker_result');
+					// #endif
+					uni.removeStorageSync('__map_picker_result');
+				} catch(e) {}
 				this.startPickerBridge();
 			} else {
 				if (this.pickerTimer) clearInterval(this.pickerTimer);
+				this.mapPickerTarget = null;
+				try {
+					// #ifdef APP-PLUS
+					if (typeof plus !== 'undefined' && plus.storage) plus.storage.removeItem('__map_picker_result');
+					// #endif
+					uni.removeStorageSync('__map_picker_result');
+				} catch(e) {}
 			}
 		}
 	},
@@ -426,6 +442,16 @@ export default {
 				this.localLng = String(lng);
 				uni.setStorageSync('fakeLat', lat);
 				uni.setStorageSync('fakeLng', lng);
+			};
+
+			window.__onMapPickerResult = (loc) => {
+				if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+					this.onMapPickerResult({
+						lat: loc.lat,
+						lng: loc.lng,
+						name: loc.name || '地图选点'
+					});
+				}
 			};
 		}
 		// #endif
@@ -763,6 +789,20 @@ export default {
 		},
 		onMapPickerResult(data) {
 			const { lat, lng, name } = data;
+
+			// 如果是从学校编辑器打开的地图选点，更新对应预设点
+			if (this.mapPickerTarget && this.$refs.schoolEditor) {
+				this.$refs.schoolEditor.updatePresetCoord(
+					this.mapPickerTarget.campusIndex,
+					this.mapPickerTarget.presetIndex,
+					lat, lng
+				);
+				this.showMapPicker = false;
+				uni.showToast({ title: `坐标已填入: ${name || '所选地点'}`, icon: 'none' });
+				return;
+			}
+
+			// 设置页地图选点
 			this.fakeLat = lat;
 			this.fakeLng = lng;
 			this.localLat = String(lat);
@@ -782,31 +822,39 @@ export default {
 			});
 		},
 		handleNativeMapPicker() {
+			this.mapPickerTarget = null;
+			this.showMapPicker = true;
+		},
+		handleSchoolMapPicker({ campusIndex, presetIndex }) {
+			this.mapPickerTarget = { campusIndex, presetIndex };
 			this.showMapPicker = true;
 		},
 		startPickerBridge() {
 			if (this.pickerTimer) clearInterval(this.pickerTimer);
+			// 通过 storage 轮询（跨 webview 最可靠的方式，不依赖 evalJS 回调）
 			this.pickerTimer = setInterval(() => {
-				// #ifdef APP-PLUS
-				const webviews = this.$scope.$getAppWebview().children();
-				if (webviews && webviews.length > 0) {
-					const wv = webviews[webviews.length - 1];
-					wv.evalJS("window.selectedLocation ? JSON.stringify(window.selectedLocation) : null", (res) => {
-						if (res) {
-							try {
-								const loc = JSON.parse(res);
-								if (loc.lat && loc.lng) {
-									this.onMapPickerResult({
-										lat: loc.lat,
-										lng: loc.lng,
-										name: '地图选点'
-									});
-								}
-							} catch (e) {}
+				try {
+					// 优先用 plus.storage（与 map.html 的 plus.storage.setItem 同一后端）
+					let raw = null;
+					// #ifdef APP-PLUS
+					if (typeof plus !== 'undefined' && plus.storage) {
+						raw = plus.storage.getItem('__map_picker_result');
+					}
+					// #endif
+					if (!raw) raw = uni.getStorageSync('__map_picker_result');
+					if (raw) {
+						const loc = typeof raw === 'string' ? JSON.parse(raw) : raw;
+						if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+							// #ifdef APP-PLUS
+							if (typeof plus !== 'undefined' && plus.storage) {
+								plus.storage.removeItem('__map_picker_result');
+							}
+							// #endif
+							uni.removeStorageSync('__map_picker_result');
+							this.onMapPickerResult({ lat: loc.lat, lng: loc.lng, name: loc.name || '地图选点' });
 						}
-					});
-				}
-				// #endif
+					}
+				} catch (e) {}
 			}, 500);
 		}
 	}

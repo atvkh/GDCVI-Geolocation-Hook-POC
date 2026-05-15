@@ -263,6 +263,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			
 			const confirmBtn = document.getElementById('btn_confirm_ck');
 			if (confirmBtn) confirmBtn.onclick = () => {
+				window.__CHECKIN_PENDING_UNTIL = Date.now() + 45000;
 				box.innerHTML = '<div style="font-size:15px;color:var(--cyber-primary);font-weight:bold;padding:10px 0;">执行中...</div>';
 				setTimeout(() => {
 					box.remove();
@@ -273,7 +274,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 						let node;
 						while (node = walker.nextNode()) {
 							const text = node.nodeValue.trim();
-							if (text === '签到' || text === '打卡' || text === '立即签到') {
+							if (text === '签到' || text === '打卡' || text === '立即签到' || text === '立即打卡') {
 								targetBtn = node.parentElement.closest('button, [role="button"], .adm-button, .van-button, .weui-btn') || node.parentElement;
 								break;
 							}
@@ -358,17 +359,24 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			this._url = url;
 			return origOpen.apply(this, arguments);
 		};
+		const isCheckinTrackingActive = () => {
+			const pendingUntil = Number(window.__CHECKIN_PENDING_UNTIL || 0);
+			return !!window.__AUTO_CLICKED__ || Date.now() < pendingUntil;
+		};
+		const resetCheckinTracking = () => {
+			window.__AUTO_CLICKED__ = false;
+			window.__CHECKIN_PENDING_UNTIL = 0;
+		};
 
 		const origSend = XMLHttpRequest.prototype.send;
 		XMLHttpRequest.prototype.send = function() {
 			this.addEventListener('load', function() {
-				if (window.__AUTO_CLICKED__) {
+				if (isCheckinTrackingActive()) {
 					try {
 						let res = {};
 						try { res = JSON.parse(this.responseText); } catch(e) { res = {}; }
 						let msg = res.message || res.msg || res.error || '';
-						
-						if (!msg && (this._method || '').toUpperCase() === 'GET') return; 
+						if (typeof msg !== 'string') msg = String(msg || '');
 
 						let isSuccess = false;
 						if (msg.includes('成功')) {
@@ -387,8 +395,11 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 						if(hud) hud.style.display = 'none';
 
 						showToast(isSuccess, msg);
-						window.__AUTO_CLICKED__ = false;
-					} catch(e) { console.warn('[CyberHook] XHR response parse error:', e); }
+						resetCheckinTracking();
+					} catch(e) {
+						console.warn('[CyberHook] XHR response parse error:', e);
+						resetCheckinTracking();
+					}
 				}
 			});
 			return origSend.apply(this, arguments);
@@ -398,13 +409,14 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 		if (origFetch) {
 			window.fetch = function() {
 				return origFetch.apply(this, arguments).then(response => {
-					if (window.__AUTO_CLICKED__) {
+					if (isCheckinTrackingActive()) {
 						const clonedResponse = response.clone();
 						clonedResponse.text().then(text => {
 							try {
 								let res = {};
 								try { res = JSON.parse(text); } catch(e) { res = {}; }
 								let msg = res.message || res.msg || res.error || '';
+								if (typeof msg !== 'string') msg = String(msg || '');
 								
 								let isSuccess = false;
 								if (msg.includes('成功')) {
@@ -423,8 +435,11 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 								if(hud) hud.style.display = 'none';
 
 								showToast(isSuccess, msg);
-								window.__AUTO_CLICKED__ = false;
-							} catch(e) { console.warn('[CyberHook] fetch response parse error:', e); }
+								resetCheckinTracking();
+							} catch(e) {
+								console.warn('[CyberHook] fetch response parse error:', e);
+								resetCheckinTracking();
+							}
 						});
 					}
 					return response;

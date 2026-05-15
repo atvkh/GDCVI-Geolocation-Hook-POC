@@ -117,6 +117,9 @@
 										placeholder="经度"
 										type="number"
 									/>
+									<view class="preset-map-btn" @click="$emit('open-map-picker', { campusIndex: cIndex, presetIndex: pIndex })">
+										<text class="material-symbols-outlined">map</text>
+									</view>
 									<view class="preset-delete" @click="deletePreset(cIndex, pIndex)" v-if="campus.presets.length > 1">
 										<text class="material-symbols-outlined">close</text>
 									</view>
@@ -137,14 +140,6 @@
 				</view>
 				
 				<!-- 坐标拾取器提示 -->
-				<view class="editor-section coord-picker-section">
-					<view class="coord-picker-hint">
-						<text class="material-symbols-outlined">info</text>
-						<text class="coord-picker-text">获取坐标：</text>
-						<text class="coord-picker-link" @click="openCoordPicker">坐标拾取器</text>
-					</view>
-				</view>
-				
 				<!-- 保存按钮 -->
 				<view class="editor-actions">
 					<view class="btn-save" @click="save">
@@ -157,7 +152,7 @@
 </template>
 
 <script>
-import { THEME_COLORS, CAMPUS_COLORS, COORD_PICKER_URL, generateId } from '@/utils/constants.js';
+import { THEME_COLORS, CAMPUS_COLORS, generateId } from '@/utils/constants.js';
 
 export default {
 	props: {
@@ -262,13 +257,11 @@ export default {
 			}
 			campus.presets.splice(presetIndex, 1);
 		},
-		openCoordPicker() {
-			// #ifdef APP-PLUS
-			plus.runtime.openURL(COORD_PICKER_URL);
-			// #endif
-			// #ifndef APP-PLUS
-			window.open(COORD_PICKER_URL);
-			// #endif
+		updatePresetCoord(campusIndex, presetIndex, lat, lng) {
+			if (this.formData.campuses[campusIndex] && this.formData.campuses[campusIndex].presets[presetIndex]) {
+				this.formData.campuses[campusIndex].presets[presetIndex].lat = String(lat);
+				this.formData.campuses[campusIndex].presets[presetIndex].lng = String(lng);
+			}
 		},
 		save() {
 			// 验证
@@ -682,6 +675,28 @@ export default {
 .preset-delete .material-symbols-outlined {
 	font-size: 16px;
 	color: rgba(255, 255, 255, 0.4);
+}
+
+.preset-map-btn {
+	width: 32px;
+	height: 32px;
+	border-radius: 6px;
+	background: rgba(50, 140, 220, 0.12);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	transition: all 0.2s;
+}
+
+.preset-map-btn:active {
+	background: rgba(50, 140, 220, 0.25);
+	transform: scale(0.9);
+}
+
+.preset-map-btn .material-symbols-outlined {
+	font-size: 16px;
+	color: #38bdf8;
 }
 
 .preset-add {
