@@ -1,7 +1,7 @@
 {
-  "versionCode": 113,
-  "version": "11.2.0",
-  "log": "1. 修复历史记录不显示问题\n2. 预设点编辑改为按钮操作\n3. 添加单元测试框架\n4. 修复卡片切换布局问题",
-  "url": "",
+  "versionCode": 115,
+  "version": "11.4.0",
+  "log": "1. 修复操作确认弹窗取消按钮不可点击问题\n2. 修复弹窗偶发不显示问题\n3. 优化Android WebView触摸事件兼容性",
+  "url": "https://wwbhb.lanzoum.com/b016kt1hhi",
   "forceUpdate": false
 }

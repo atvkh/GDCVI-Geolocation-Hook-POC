@@ -488,6 +488,25 @@ export default {
 					});
 				}
 			};
+			
+			this._bridgePollTimer = setInterval(() => {
+				try {
+					var raw = plus.storage.getItem('__cyber_bridge_msg');
+					if (raw) {
+						plus.storage.removeItem('__cyber_bridge_msg');
+						var msg = JSON.parse(raw);
+						if (msg.action === 'checkin_result' && msg.data) {
+							window.__handleCheckinResult(msg.data.isSuccess, msg.data.msg);
+						} else if (msg.action === 'hook_verify' && msg.data) {
+							if (msg.data.isHooked) {
+								this.hookStatus = 'active';
+							} else {
+								this.hookStatus = 'fail';
+							}
+						}
+					}
+				} catch(e) {}
+			}, 500);
 		}
 		// #endif
 	},
@@ -500,6 +519,10 @@ export default {
 			if (this.persistentInjectTimer) {
 				clearInterval(this.persistentInjectTimer);
 				this.persistentInjectTimer = null;
+			}
+			if (this._bridgePollTimer) {
+				clearInterval(this._bridgePollTimer);
+				this._bridgePollTimer = null;
 			}
 			
 			// #ifdef APP-PLUS
