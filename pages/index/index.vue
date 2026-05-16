@@ -761,7 +761,7 @@ export default {
 				success: (res) => {
 					if (res.statusCode === 200 && res.data) {
 						const remoteData = res.data;
-						if (remoteData.versionCode && remoteData.versionCode > APP_VERSION_CODE) {
+						if (remoteData.versionCode && remoteData.versionCode > APP_VERSION_CODE && remoteData.version !== APP_VERSION) {
 							this.updateInfo = {
 								version: remoteData.version || '',
 								log: remoteData.log || '',
