@@ -248,13 +248,13 @@
 
 		<!-- App 开屏动画叠加层 -->
 		<view class="app-splash-overlay" v-if="showVueSplash" :class="{ 'fade-out': fadeOutSplash }">
-			<view class="splash-logo-container">
+			<view class="splash-logo-container" :style="splashLogoStyle">
 				<image src="/static/splash_logo.png" class="splash-logo" />
 				<view class="splash-logo-glow" />
 			</view>
-			<view class="splash-branding">
-				<text class="splash-title">幻签</text>
-				<text class="splash-subtitle">HUANQIAN</text>
+			<view class="splash-branding" :style="splashBrandingStyle">
+				<text class="splash-title" :style="splashTitleStyle">幻签</text>
+				<text class="splash-subtitle" :style="splashSubtitleStyle">HUANQIAN</text>
 			</view>
 		</view>
 	</view>
@@ -321,7 +321,11 @@ export default {
 			checkinWebview: null,
 			// 开屏动画控制状态
 			showVueSplash: true,
-			fadeOutSplash: false
+			fadeOutSplash: false,
+			splashLogoStyle: '',
+			splashBrandingStyle: '',
+			splashTitleStyle: '',
+			splashSubtitleStyle: ''
 		}
 	},
 	watch: {
@@ -417,6 +421,9 @@ export default {
 		return false; 
 	},
 	created() {
+		// 计算开屏精确坐标以对齐原生点九图启动页
+		this.calculateSplashLayout();
+
 		// 开屏动画定时控制
 		setTimeout(() => {
 			this.fadeOutSplash = true;
@@ -559,6 +566,65 @@ export default {
 			// #endif
 		},
 	methods: {
+		calculateSplashLayout() {
+			try {
+				const sys = uni.getSystemInfoSync();
+				const W = sys.screenWidth;
+				const H = sys.screenHeight;
+				
+				// 对应 create_splash.js 中定义的 xxhdpi 原生启动页设计稿参数
+				const designW = 1080;
+				
+				// 宽度缩放比例 (即 Android 系统缩放点九图的物理密度基准)
+				const scaleW = W / designW;
+				
+				// 原生点九图的拉伸与非拉伸区段高度定义 (单位: 像素)
+				const S1_design = 767; // 顶部至 Logo 非拉伸区开始 (拉伸区1)
+				const N2_design = 226; // Logo 占用高度 (非拉伸区2, 包含上下各5px边距)
+				const S3_design = 611; // Logo 底部至文字开始 (拉伸区3)
+				const N4_design = 105; // 品牌文字占用高度 (非拉伸区4, 包含上下边距)
+				const S5_design = 173; // 文字底部至图片底端 (拉伸区5)
+				
+				const sumS = S1_design + S3_design + S5_design; // 1551
+				const sumN = N2_design + N4_design;             // 331
+				
+				// 计算分配给拉伸区间的剩余屏幕物理高度
+				const remainingH = H - sumN * scaleW;
+				
+				// 按设计稿比例分配拉伸后各拉伸区间的物理高度
+				const S1_scaled = remainingH * (S1_design / sumS);
+				const S3_scaled = remainingH * (S3_design / sumS);
+				
+				// Logo 顶部在当前全面屏上的精确像素坐标 (S1_scaled 加上 5px 边距乘以缩放)
+				const logoTopPx = S1_scaled + 5 * scaleW;
+				const logoSizePx = 216 * scaleW;
+				
+				// 品牌文字在当前全面屏上的精确像素坐标 (S1_scaled + N2 + S3_scaled)
+				// 减去 38px 缩放高度以修正 CSS 与 SVG baseline 的绘制原点偏移
+				const brandTopPx = S1_scaled + N2_design * scaleW + S3_scaled + (15 - 38) * scaleW;
+				
+				this.splashLogoStyle = `top: ${logoTopPx}px; width: ${logoSizePx}px; height: ${logoSizePx}px;`;
+				this.splashBrandingStyle = `top: ${brandTopPx}px;`;
+				
+				// 精确缩放字体与字间距，确保文字大小和横向拉伸比例与原生完美一致
+				const titleFontSize = 40 * scaleW;
+				const titleLetterSpacing = 4 * scaleW;
+				const subtitleFontSize = 13 * scaleW;
+				const subtitleLetterSpacing = 8 * scaleW;
+				
+				this.splashTitleStyle = `font-size: ${titleFontSize}px; letter-spacing: ${titleLetterSpacing}px; margin-bottom: ${8 * scaleW}px;`;
+				this.splashSubtitleStyle = `font-size: ${subtitleFontSize}px; letter-spacing: ${subtitleLetterSpacing}px; text-indent: ${subtitleLetterSpacing}px;`;
+				
+				console.log('[SPLASH LAYOUT] Computed pixel-perfect layout:', W, 'x', H, 'logoTop:', logoTopPx, 'brandTop:', brandTopPx);
+			} catch (e) {
+				console.error('[SPLASH LAYOUT] Error computing layout', e);
+				// 备用百分比方案
+				this.splashLogoStyle = 'top: 41%; width: 20vw; height: 20vw;';
+				this.splashBrandingStyle = 'bottom: 11%;';
+				this.splashTitleStyle = 'font-size: 3.7vw; letter-spacing: 0.37vw; margin-bottom: 0.8vw;';
+				this.splashSubtitleStyle = 'font-size: 1.2vw; letter-spacing: 0.74vw; text-indent: 0.74vw;';
+			}
+		},
 		initSchoolData() {
 			this.schoolList = getSchoolList();
 			this.currentSchoolId = getCurrentSchoolId();
