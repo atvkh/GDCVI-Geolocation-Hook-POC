@@ -15,10 +15,10 @@
 				</view>
 				<view class="coord-input-group">
 					<view class="settings-input-wrapper">
-						<input type="text" v-model="localLat" class="settings-input" placeholder="纬度" />
+						<input type="text" v-model="localLat" class="settings-input" placeholder="纬度" @focus="isEditingCoord = true" @blur="isEditingCoord = false" />
 					</view>
 					<view class="settings-input-wrapper">
-						<input type="text" v-model="localLng" class="settings-input" placeholder="经度" />
+						<input type="text" v-model="localLng" class="settings-input" placeholder="经度" @focus="isEditingCoord = true" @blur="isEditingCoord = false" />
 					</view>
 				</view>
 			</view>
@@ -93,12 +93,13 @@ export default {
 		return {
 			localLat: String(this.fakeLat),
 			localLng: String(this.fakeLng),
-			showPresetDropdown: false
+			showPresetDropdown: false,
+			isEditingCoord: false
 		}
 	},
 	watch: {
-		fakeLat(val) { this.localLat = String(val); },
-		fakeLng(val) { this.localLng = String(val); }
+		fakeLat(val) { if (!this.isEditingCoord) this.localLat = String(val); },
+		fakeLng(val) { if (!this.isEditingCoord) this.localLng = String(val); }
 	},
 	methods: {
 		togglePresetDropdown() {

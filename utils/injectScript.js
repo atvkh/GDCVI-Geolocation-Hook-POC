@@ -1,5 +1,6 @@
 export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat, defaultLng) => {
 	return `(function(){
+		if(typeof window.__f__ !== 'function') window.__f__ = function(){};
 		if(window.__CYBER_HOOK_ACTIVE__) return;
 		window.__CYBER_HOOK_ACTIVE__ = true;
 
@@ -128,7 +129,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 								var fakeMethod = function(suc) {
 									if (suc) {
 										var fd = getFakeData();
-										setTimeout(function() { suc({ module: 'geolocation', type: 'h5', lat: fd.lat, lng: fd.lng, accuracy: fd.accuracy, nation: '中国', province: '广东省', city: '清远市', adcode: '441802', __cyber_fake__: true }); }, 50);
+										setTimeout(function() { suc({ module: 'geolocation', type: 'h5', lat: fd.lat, lng: fd.lng, accuracy: fd.accuracy, __cyber_fake__: true }); }, 50);
 									}
 								};
 								fakeMethod.__cyber_name = prop;
@@ -176,10 +177,19 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 		});
 
 		var sendToUniApp = function(action, data) {
-			var payload = JSON.stringify({ action: action, data: data });
+			var payload = JSON.stringify({ action: action, data: data, ts: Date.now() });
 			try {
 				if (window.plus && plus.storage) {
-					plus.storage.setItem('__cyber_bridge_msg', payload);
+					var existing = plus.storage.getItem('__cyber_bridge_msgs');
+					var queue = [];
+					try {
+						var parsedQueue = existing ? JSON.parse(existing) : [];
+						queue = Array.isArray(parsedQueue) ? parsedQueue : [parsedQueue];
+					} catch(e2) {}
+					queue.push(payload);
+					if (queue.length > 20) queue = queue.slice(queue.length - 20);
+					plus.storage.setItem('__cyber_bridge_msgs', JSON.stringify(queue));
+					plus.storage.setItem('__cyber_bridge_msg_' + Date.now() + '_' + Math.random().toString(36).slice(2), payload);
 				}
 			} catch(e) {}
 			try {
@@ -204,23 +214,105 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			} catch (e) {}
 		};
 
+		var CHECKIN_PENDING_KEY = '__cyber_checkin_pending_until';
+		var CHECKIN_PENDING_MS = 90000;
+		var getCheckinPendingUntil = function() {
+			var until = Number(window.__CHECKIN_PENDING_UNTIL || 0);
+			try {
+				if (window.plus && plus.storage) {
+					var stored = Number(plus.storage.getItem(CHECKIN_PENDING_KEY) || 0);
+					if (stored > until) until = stored;
+				}
+			} catch(e) {}
+			return until;
+		};
+		var isCheckinPending = function() {
+			return !!window.__AUTO_CLICKED__ || Date.now() < getCheckinPendingUntil();
+		};
+		var setCheckinPending = function() {
+			var until = Date.now() + CHECKIN_PENDING_MS;
+			window.__AUTO_CLICKED__ = true;
+			window.__CHECKIN_PENDING_UNTIL = until;
+			try {
+				if (window.plus && plus.storage) plus.storage.setItem(CHECKIN_PENDING_KEY, String(until));
+			} catch(e) {}
+		};
+		var clearCheckinPending = function() {
+			window.__AUTO_CLICKED__ = false;
+			window.__CHECKIN_PENDING_UNTIL = 0;
+			_clickPending = false;
+			try {
+				if (window.plus && plus.storage) plus.storage.removeItem(CHECKIN_PENDING_KEY);
+			} catch(e) {}
+		};
+
+		var parseResponseBody = function(body) {
+			var data = {};
+			var text = '';
+			if (body == null) return { data: data, text: text };
+			if (typeof body === 'string') {
+				text = body;
+				try { data = JSON.parse(body); } catch(e) {}
+			} else {
+				data = body;
+				try { text = JSON.stringify(body); } catch(e) {}
+			}
+			return { data: data && typeof data === 'object' ? data : {}, text: text || '' };
+		};
+
+		var pickResponseMessage = function(data, text) {
+			var msg = '';
+			if (data && typeof data === 'object') {
+				msg = data.message || data.msg || data.error || data.errMsg || data.errmsg || '';
+				if (!msg && data.data && typeof data.data === 'object') {
+					msg = data.data.message || data.data.msg || data.data.error || data.data.errMsg || data.data.errmsg || '';
+				}
+			}
+			if (msg == null) msg = '';
+			if (typeof msg !== 'string') msg = String(msg);
+			if (!msg && text && /(成功|失败|不在|未到|不允许|异常|无法|太远)/.test(text)) {
+				msg = text.replace(/\\s+/g, ' ').slice(0, 120);
+			}
+			return msg;
+		};
+
+		var buildCheckinResult = function(body, statusOk) {
+			var parsed = parseResponseBody(body);
+			var data = parsed.data;
+			var msg = pickResponseMessage(data, parsed.text);
+			var signalText = msg || parsed.text || '';
+			var isSuccess = false;
+			if (signalText.indexOf('成功') !== -1) {
+				isSuccess = true;
+			} else if (/(失败|不在|未到|不允许|异常|无法|太远)/.test(signalText)) {
+				isSuccess = false;
+			} else if (data && (data.code !== undefined || data.success !== undefined)) {
+				isSuccess = (data.code === 200 || data.code === 0 || data.success === true || data.success === 'true');
+			} else {
+				isSuccess = !!statusOk;
+			}
+			if (!msg) msg = isSuccess ? '已完成' : '状态非预期';
+			return { isSuccess: isSuccess, msg: msg };
+		};
+
 		var origOpen = XMLHttpRequest.prototype.open;
 		XMLHttpRequest.prototype.open = function(method, url) { this._method = method; this._url = url; return origOpen.apply(this, arguments); };
 		var origSend = XMLHttpRequest.prototype.send;
 		XMLHttpRequest.prototype.send = function() {
 			this.addEventListener('load', function() {
-				if (window.__AUTO_CLICKED__) {
+				if (isCheckinPending()) {
 					try {
-						var res = JSON.parse(this.responseText);
-						var msg = res.message || res.msg || res.error || '';
-						var isSuccess = false;
-						if (msg.includes('成功')) { isSuccess = true; }
-						else if (msg.match(/(失败|不在|未到|不允许|异常|无法|太远)/)) { isSuccess = false; }
-						else { isSuccess = (res.code === 200 || res.code === 0 || res.success === true); }
-						if (!msg) msg = isSuccess ? '已完成' : '状态非预期';
-						sendToUniApp('checkin_result', { isSuccess: isSuccess, msg: msg });
-						window.__AUTO_CLICKED__ = false;
-					} catch (e) {}
+						var body = '';
+						try { body = this.responseText; } catch(e1) { body = this.response; }
+						if (!body && this.response) body = this.response;
+						var result = buildCheckinResult(body, this.status >= 200 && this.status < 300);
+						console.log('[CYBER] XHR checkin_result: isSuccess=' + result.isSuccess + ' msg=' + result.msg);
+						sendToUniApp('checkin_result', result);
+						clearCheckinPending();
+					} catch (e) {
+						console.log('[CYBER] XHR parse error: ' + e.message);
+						clearCheckinPending();
+					}
 				}
 			});
 			return origSend.apply(this, arguments);
@@ -229,15 +321,20 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 		var origFetch = window.fetch;
 		window.fetch = function() {
 			var promise = origFetch.apply(this, arguments);
-			if (window.__AUTO_CLICKED__) {
+			if (isCheckinPending()) {
 				promise.then(function(resp) {
 					if (resp.clone) {
-						resp.clone().json().then(function(data) {
-							var msg = data.message || data.msg || data.error || '';
-							var isSuccess = (data.code === 200 || data.code === 0 || data.success === true || msg.indexOf('成功') !== -1);
-							sendToUniApp('checkin_result', { isSuccess: isSuccess, msg: msg });
-							window.__AUTO_CLICKED__ = false;
-						}).catch(function(){});
+						resp.clone().text().then(function(text) {
+							var result = buildCheckinResult(text, resp.ok);
+							console.log('[CYBER] Fetch checkin_result: isSuccess=' + result.isSuccess + ' msg=' + result.msg);
+							sendToUniApp('checkin_result', result);
+							clearCheckinPending();
+						}).catch(function(){
+							var result = buildCheckinResult('', resp.ok);
+							console.log('[CYBER] Fetch checkin_result: isSuccess=' + result.isSuccess + ' msg=' + result.msg);
+							sendToUniApp('checkin_result', result);
+							clearCheckinPending();
+						});
 					}
 				}).catch(function(){});
 			}
@@ -300,74 +397,31 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 			return false;
 		}
 
-		var _cyberStyle = document.createElement('style');
-		_cyberStyle.textContent = '#cyber_confirm,#cyber_confirm *{pointer-events:auto!important;-webkit-tap-highlight-color:transparent!important;touch-action:manipulation!important;} #cyber_cancel_btn,#cyber_confirm_btn{cursor:pointer!important;}';
-		function _appendCyberStyle() {
-			var target = document.head || document.documentElement;
-			if (target && !_cyberStyle.parentNode) target.appendChild(_cyberStyle);
-		}
-		if (document.head || document.documentElement) _appendCyberStyle();
-		else document.addEventListener('DOMContentLoaded', _appendCyberStyle);
-
 		var confirmBoxShown = false;
 		var _targetBtn = null;
-		var _overlay = null;
-		var _lastDialogAction = 0;
+		var _cancelUntil = 0;
+		var _clickPending = isCheckinPending();
+		var _domResultSent = false;
 
-		window.__cyberCancel = function() {
-			if (_overlay && _overlay.parentNode) _overlay.parentNode.removeChild(_overlay);
-			_overlay = null;
-			confirmBoxShown = false;
+		var tryResolveCheckinFromDom = function() {
+			if (_domResultSent || !isCheckinPending() || !document.body) return;
+			var text = document.body.innerText || '';
+			var successMatch = text.match(/(签到成功|打卡成功|提交成功|操作成功|成功打卡|已完成签到|已完成打卡)/);
+			var failMatch = text.match(/(签到失败|打卡失败|提交失败|不在|未到|不允许|异常|无法|太远|距离太远)/);
+			if (!successMatch && !failMatch) return;
+			var isSuccess = !!successMatch;
+			var msg = (successMatch || failMatch)[0];
+			console.log('[CYBER] DOM checkin_result: isSuccess=' + isSuccess + ' msg=' + msg);
+			_domResultSent = true;
+			sendToUniApp('checkin_result', { isSuccess: isSuccess, msg: msg });
+			clearCheckinPending();
 		};
-
-		window.__cyberConfirm = function() {
-			var btnRow = document.getElementById('cyber_btn_row');
-			var descEl = document.getElementById('cyber_desc');
-			if (btnRow) btnRow.style.display = 'none';
-			if (descEl) { descEl.textContent = '执行中...'; descEl.style.color = '#28a745'; descEl.style.fontWeight = 'bold'; }
-			setTimeout(function() {
-				window.__cyberCancel();
-				window.__AUTO_CLICKED__ = true;
-				if (_targetBtn) _targetBtn.click();
-			}, 300);
-		};
-
-		var _findDialogTarget = function(el) {
-			while (el && el !== document) {
-				if (el.id === 'cyber_cancel_btn') return 'cancel';
-				if (el.id === 'cyber_confirm_btn') return 'confirm';
-				if (el.id === 'cyber_box') return 'box';
-				el = el.parentElement;
-			}
-			return 'outside';
-		};
-
-		document.addEventListener('touchend', function(e) {
-			if (!confirmBoxShown || !_overlay) return;
-			var touch = e.changedTouches[0];
-			if (!touch) return;
-			var el = document.elementFromPoint(touch.clientX, touch.clientY);
-			if (!el) return;
-			var target = _findDialogTarget(el);
-			var now = Date.now();
-			if (now - _lastDialogAction < 500) return;
-			if (target === 'cancel') { _lastDialogAction = now; e.preventDefault(); window.__cyberCancel(); }
-			else if (target === 'confirm') { _lastDialogAction = now; e.preventDefault(); window.__cyberConfirm(); }
-			else if (target === 'outside') { _lastDialogAction = now; e.preventDefault(); window.__cyberCancel(); }
-		}, false);
-
-		document.addEventListener('click', function(e) {
-			if (!confirmBoxShown || !_overlay) return;
-			var target = _findDialogTarget(e.target);
-			var now = Date.now();
-			if (now - _lastDialogAction < 500) return;
-			if (target === 'cancel') { _lastDialogAction = now; e.preventDefault(); e.stopPropagation(); window.__cyberCancel(); }
-			else if (target === 'confirm') { _lastDialogAction = now; e.preventDefault(); e.stopPropagation(); window.__cyberConfirm(); }
-			else if (target === 'outside') { _lastDialogAction = now; window.__cyberCancel(); }
-		}, true);
 
 		var checkCheckInButton = function() {
 			if (confirmBoxShown) return;
+			tryResolveCheckinFromDom();
+			if (_clickPending) return;
+			if (Date.now() < _cancelUntil) return;
 			if (!document.body) return;
 			var targetBtn = null;
 			var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
@@ -389,62 +443,49 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 					confirmBoxShown = true;
 					_targetBtn = targetBtn;
 
-					var overlay = document.createElement('div');
-					overlay.id = 'cyber_confirm';
-					overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.35);z-index:2147483647;display:flex;align-items:center;justify-content:center;will-change:transform;';
-					_overlay = overlay;
-
-					var box = document.createElement('div');
-					box.id = 'cyber_box';
-					box.style.cssText = 'background:rgba(255,255,255,0.97);border-radius:24px;padding:28px 24px 24px;width:82%;max-width:300px;box-shadow:0 20px 60px rgba(0,0,0,0.25);text-align:center;will-change:transform;';
-
-					var titleEl = document.createElement('div');
-					titleEl.style.cssText = 'font-size:18px;font-weight:700;color:#1d1d1f;margin-bottom:12px;';
-					titleEl.textContent = '操作确认';
-
-					var descEl = document.createElement('div');
-					descEl.id = 'cyber_desc';
-					descEl.style.cssText = 'font-size:14px;color:#86868b;margin-bottom:24px;line-height:1.5;';
-					descEl.textContent = '已锁定至目标区域，是否执行签到操作？';
-
-					var btnRow = document.createElement('div');
-					btnRow.id = 'cyber_btn_row';
-					btnRow.style.cssText = 'display:flex;gap:12px;';
-
-					var cancelBtn = document.createElement('a');
-					cancelBtn.id = 'cyber_cancel_btn';
-					cancelBtn.href = 'javascript:void(0)';
-					cancelBtn.textContent = '取消';
-					cancelBtn.style.cssText = 'flex:1;padding:14px;border-radius:14px;background:#e5e5ea;color:#8e8e93;font-weight:600;font-size:15px;text-align:center;text-decoration:none;display:block;line-height:normal;';
-
-					var confirmBtn = document.createElement('a');
-					confirmBtn.id = 'cyber_confirm_btn';
-					confirmBtn.href = 'javascript:void(0)';
-					confirmBtn.textContent = '确认执行';
-					confirmBtn.style.cssText = 'flex:1;padding:14px;border-radius:14px;background:linear-gradient(135deg,#32d74b,#28a745);color:#fff;font-weight:600;font-size:15px;text-align:center;text-decoration:none;display:block;line-height:normal;';
-
-					btnRow.appendChild(cancelBtn);
-					btnRow.appendChild(confirmBtn);
-					box.appendChild(titleEl);
-					box.appendChild(descEl);
-					box.appendChild(btnRow);
-					overlay.appendChild(box);
-					document.body.appendChild(overlay);
+					var ok = confirm('已锁定至目标区域，是否执行签到操作？');
+					if (ok) {
+						var tip = document.createElement('div');
+						tip.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:#28a745;padding:16px 32px;border-radius:16px;z-index:2147483647;font-size:16px;font-weight:bold;pointer-events:none;';
+						tip.textContent = '执行中...';
+						document.body.appendChild(tip);
+						setTimeout(function() {
+							if (tip.parentNode) tip.parentNode.removeChild(tip);
+							_clickPending = true;
+							setCheckinPending();
+							if (_targetBtn && document.body && document.body.contains(_targetBtn)) {
+								_targetBtn.click();
+							} else {
+								clearCheckinPending();
+							}
+							confirmBoxShown = false;
+						}, 100);
+						setTimeout(function() {
+							if (_clickPending) {
+								clearCheckinPending();
+							}
+						}, CHECKIN_PENDING_MS);
+					} else {
+						confirmBoxShown = false;
+						_cancelUntil = Date.now() + 60000;
+					}
 				}
 			}
 		};
 
-		var domObserver = new MutationObserver(function() { checkCheckInButton(); });
+		var domObserver = new MutationObserver(function() { checkCheckInButton(); tryResolveCheckinFromDom(); });
 		if (document.readyState === 'loading') {
 			document.addEventListener('DOMContentLoaded', function() {
 				checkCheckInButton();
+				tryResolveCheckinFromDom();
 				domObserver.observe(document.body, { childList: true, subtree: true });
 			});
 		} else {
 			checkCheckInButton();
+			tryResolveCheckinFromDom();
 			if (document.body) domObserver.observe(document.body, { childList: true, subtree: true });
 		}
-		setInterval(checkCheckInButton, 2000);
+		setInterval(function() { checkCheckInButton(); tryResolveCheckinFromDom(); }, 2000);
 
 		window.showToast = function(msg) {
 			var t = document.createElement('div');

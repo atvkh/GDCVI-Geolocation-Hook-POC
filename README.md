@@ -10,7 +10,7 @@
 
 <br>
 
-[![Version](https://img.shields.io/badge/version-11.4.0-blue.svg?style=for-the-badge)](https://github.com/atvkh/GDCVI-Geolocation-Hook-POC)
+[![Version](https://img.shields.io/badge/version-11.5.0-blue.svg?style=for-the-badge)](https://github.com/atvkh/GDCVI-Geolocation-Hook-POC)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-00d4ff?style=for-the-badge)]()
 [![Framework](https://img.shields.io/badge/Vue-3.x-42b883?style=for-the-badge)](https://vuejs.org/)
 [![Uni-App](https://img.shields.io/badge/Uni--App-V3-2B9939?style=for-the-badge)](https://uniapp.dcloud.io/)
@@ -334,7 +334,15 @@ npm run test:coverage
 
 ## 版本记录
 
-### v11.4.0 (当前版本)
+### v11.5.0 (当前版本)
+
+```
+✦ 核心修复：彻底解决历史记录在特定流程下加载/显示不全的 bug，提升数据持久化读取兼容性
+✦ 体验升级：全新重构 App 启动页布局，采用 Android 原生点九图（Nine-Patch）技术，彻底解决全面屏设备下 Logo 拉伸变形与错位问题
+✦ 动效升级：优化开屏与主界面的渐隐衔接逻辑，首帧 100% 对齐，退出时过渡更平滑
+```
+
+### v11.4.0
 
 ```
 ✦ 视觉系统演进：全面迁移至 Liquid Glass 设计语言，集成物理弹性交互动效

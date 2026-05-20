@@ -9,21 +9,23 @@ function createCheckinResult(historyList, isSuccess, msg, fakeLat, fakeLng) {
   const mm = now.getMinutes().toString().padStart(2, '0');
   const ss = now.getSeconds().toString().padStart(2, '0');
   const timeStr = `${hh}:${mm}:${ss}`;
-  const dateStr = now.toISOString().split('T')[0];
+  const yyyy = now.getFullYear();
+  const MM = (now.getMonth() + 1).toString().padStart(2, '0');
+  const dd = now.getDate().toString().padStart(2, '0');
+  const dateStr = `${yyyy}-${MM}-${dd}`;
   
-  historyList.unshift({ 
+  const nextHistory = [{
     time: timeStr, 
     date: dateStr, 
     lat: fakeLat, 
     lng: fakeLng, 
     status: isSuccess ? '成功' : '失败', 
     reason: msg || '' 
-  });
+  }, ...historyList].slice(0, MAX_HISTORY_RECORDS);
+  historyList.splice(0, historyList.length, ...nextHistory);
+  secureSet('historyList', nextHistory);
   
-  const trimmed = historyList.slice(0, MAX_HISTORY_RECORDS);
-  secureSet('historyList', trimmed);
-  
-  return trimmed;
+  return nextHistory;
 }
 
 describe('历史记录逻辑', () => {
@@ -126,7 +128,7 @@ describe('历史记录逻辑', () => {
 describe('TabHistory computed 逻辑', () => {
   // 模拟 TabHistory 的 computed
   function getSuccessCount(list) {
-    return list.filter(item => item.status !== '失败').length;
+    return list.filter(item => item.status === '成功').length;
   }
   
   function getFailCount(list) {
@@ -137,8 +139,9 @@ describe('TabHistory computed 逻辑', () => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     return list.filter(item => {
-      if (!item.date) return true;
+      if (!item.date) return false;
       const itemDate = new Date(item.date);
+      if (isNaN(itemDate.getTime())) return false;
       return itemDate >= weekAgo;
     }).length;
   }
@@ -169,13 +172,13 @@ describe('TabHistory computed 逻辑', () => {
     expect(getFailCount([])).toBe(0);
   });
 
-  it('无 status 字段默认为成功', () => {
+  it('无 status 字段不计为成功', () => {
     const list = [
       { time: '12:00:00' },
       { status: '成功' }
     ];
     
-    expect(getSuccessCount(list)).toBe(2);
+    expect(getSuccessCount(list)).toBe(1);
     expect(getFailCount(list)).toBe(0);
   });
 });

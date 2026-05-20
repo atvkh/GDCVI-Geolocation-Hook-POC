@@ -245,6 +245,18 @@
 				</view>
 			</view>
 		</view>
+
+		<!-- App 开屏动画叠加层 -->
+		<view class="app-splash-overlay" v-if="showVueSplash" :class="{ 'fade-out': fadeOutSplash }">
+			<view class="splash-logo-container">
+				<image src="/static/splash_logo.png" class="splash-logo" />
+				<view class="splash-logo-glow" />
+			</view>
+			<view class="splash-branding">
+				<text class="splash-title">幻签</text>
+				<text class="splash-subtitle">HUANQIAN</text>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -306,7 +318,10 @@ export default {
 			pickerUrl: '/hybrid/html/map.html',
 			pickerTimer: null,
 			mapPickerTarget: null,
-			checkinWebview: null
+			checkinWebview: null,
+			// 开屏动画控制状态
+			showVueSplash: true,
+			fadeOutSplash: false
 		}
 	},
 	watch: {
@@ -402,6 +417,14 @@ export default {
 		return false; 
 	},
 	created() {
+		// 开屏动画定时控制
+		setTimeout(() => {
+			this.fadeOutSplash = true;
+			setTimeout(() => {
+				this.showVueSplash = false;
+			}, 500); // 渐隐持续时间 0.5s
+		}, 1800); // 展示持续时间 1.8s
+
 		this.initSchoolData();
 		this.checkAppUpdate();
 		if (this.useRandomPreset) this.randomizePreset();
@@ -462,7 +485,7 @@ export default {
 				try {
 					var decoded = JSON.parse(decodeURIComponent(escape(atob(payload))));
 					if (decoded.action === 'hook_verify') {
-						var d = decoded.data;
+						const d = decoded.data;
 						console.log('[HOOK VERIFY] isHooked=' + d.isHooked + ' lat=' + d.lat + ' lng=' + d.lng + ' fakeLat=' + d.fakeLat + ' fakeLng=' + d.fakeLng);
 						if (d.isHooked) {
 							this.hookStatus = 'active';
@@ -471,7 +494,7 @@ export default {
 							console.error('[HOOK VERIFY] 定位注入失败！返回坐标与预设不匹配');
 						}
 					} else if (decoded.action === 'checkin_result') {
-						var d = decoded.data;
+						const d = decoded.data;
 						window.__handleCheckinResult(d.isSuccess, d.msg);
 					}
 				} catch(e) {
@@ -1295,5 +1318,113 @@ export default {
 .btn-preset-save:active {
 	transform: scale(0.96);
 	opacity: 0.9;
+}
+
+/* App 开屏动画叠加层样式 */
+.app-splash-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: #08080c;
+	z-index: 99999;
+	transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+	pointer-events: none;
+}
+
+.app-splash-overlay.fade-out {
+	opacity: 0;
+}
+
+.splash-logo-container {
+	position: absolute;
+	top: 41%;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 20vw;
+	height: 20vw;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.app-splash-overlay.fade-out .splash-logo-container {
+	transform: translateX(-50%) scale(1.08);
+}
+
+.splash-logo {
+	width: 100%;
+	height: 100%;
+}
+
+/* 徽标背后的微弱呼吸光环 - 从0渐显，营造流光感 */
+.splash-logo-glow {
+	position: absolute;
+	width: 28vw;
+	height: 28vw;
+	background: radial-gradient(circle, rgba(50, 140, 220, 0.16) 0%, rgba(50, 140, 220, 0) 70%);
+	border-radius: 50%;
+	z-index: -1;
+	opacity: 0;
+	transform: scale(0.7);
+	animation: glow-fade-in 1.4s ease-out 0.2s forwards, pulse-glow 2.2s infinite alternate ease-in-out 1.6s;
+}
+
+.splash-branding {
+	position: absolute;
+	bottom: 11%;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease-out;
+}
+
+.app-splash-overlay.fade-out .splash-branding {
+	transform: translateX(-50%) translateY(8px);
+	opacity: 0;
+}
+
+.splash-title {
+	font-family: -apple-system, SF Pro Display, Helvetica Neue, Arial, sans-serif;
+	font-weight: 600;
+	font-size: 3.7vw;
+	color: #ffffff;
+	letter-spacing: 0.37vw;
+	margin-bottom: 0.8vw;
+}
+
+.splash-subtitle {
+	font-family: -apple-system, SF Pro Text, Helvetica Neue, Arial, sans-serif;
+	font-weight: 500;
+	font-size: 1.2vw;
+	color: rgba(255, 255, 255, 0.35);
+	letter-spacing: 0.74vw;
+	text-indent: 0.74vw;
+}
+
+@keyframes glow-fade-in {
+	0% {
+		opacity: 0;
+		transform: scale(0.7);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes pulse-glow {
+	0% {
+		transform: scale(1);
+		opacity: 0.7;
+	}
+	100% {
+		transform: scale(1.15);
+		opacity: 1;
+	}
 }
 </style>

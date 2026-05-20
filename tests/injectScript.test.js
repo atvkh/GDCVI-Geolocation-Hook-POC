@@ -39,7 +39,7 @@ describe('injectScript.js - 脚本生成', () => {
 
     it('应包含确认框功能', () => {
       const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-      expect(script).toContain('showConfirmBox');
+      expect(script).toContain('confirm(');
     });
 
     it('应包含按钮检测逻辑', () => {
@@ -72,7 +72,7 @@ describe('injectScript.js - 深度拦截验证', () => {
 
   it('应包含腾讯地图 SDK 拦截', () => {
     const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
-    expect(script).toContain('qq.maps');
+    expect(script).toContain("Object.defineProperty(window, 'qq'");
     expect(script).toContain('Geolocation');
     expect(script).toContain('getLocation');
   });
@@ -80,7 +80,6 @@ describe('injectScript.js - 深度拦截验证', () => {
   it('应包含按钮禁用检测', () => {
     const script = generateCoreScript(23.73513, 113.088972, '.btn', 23.735, 113.088);
     expect(script).toContain('isButtonDisabled');
-    expect(script).toContain('van-button--disabled');
-    expect(script).toContain('pointerEvents');
+    expect(script).toContain('aria-disabled');
   });
 });

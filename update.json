@@ -1,7 +1,8 @@
 {
-  "versionCode": 114,
-  "version": "11.4.0",
-  "log": "1. 修复操作确认弹窗取消按钮不可点击问题\n2. 修复弹窗偶发不显示问题\n3. 优化Android WebView触摸事件兼容性\n\n下载密码: 4w2u",
+  "_comment": "versionCode 与 version 需与 utils/constants.js 中的 APP_VERSION_CODE / APP_VERSION 保持同步",
+  "versionCode": 115,
+  "version": "11.5.0",
+  "log": "1. 修复历史记录不显示问题\n2. 优化开屏启动页防拉伸畸变与渐隐效果\n\n下载密码: 4w2u",
   "url": "https://wwbhb.lanzoum.com/b016kt1hhi",
   "forceUpdate": false
 }

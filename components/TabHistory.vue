@@ -33,12 +33,13 @@
 			<view v-for="(item, index) in historyList" :key="index" class="history-item" @click="toggleHistoryDetail(index)">
 				<view class="history-item-main">
 					<view class="history-item-left">
+						<text class="history-item-date">{{ item.date }}</text>
 						<text class="history-item-time">{{ item.time }}</text>
 						<text class="history-item-coord">坐标: {{ item.lat }}, {{ item.lng }}</text>
 					</view>
 					<view class="history-item-right">
 						<view class="history-item-tag" :class="item.status === '失败' ? 'tag-fail' : 'tag-success'">
-							{{ item.status || '成功' }}
+							{{ item.status || '未知' }}
 						</view>
 						<text class="material-symbols-outlined expand-icon" :class="{ 'expanded': expandedIndex === index }">expand_more</text>
 					</view>
@@ -88,7 +89,7 @@ export default {
 	},
 	computed: {
 		successCount() {
-			return this.historyList.filter(item => item.status !== '失败').length;
+			return this.historyList.filter(item => item.status === '成功').length;
 		},
 		failCount() {
 			return this.historyList.filter(item => item.status === '失败').length;
@@ -97,8 +98,9 @@ export default {
 			const now = new Date();
 			const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 			return this.historyList.filter(item => {
-				if (!item.date) return true;
+				if (!item.date) return false;
 				const itemDate = new Date(item.date);
+				if (isNaN(itemDate.getTime())) return false;
 				return itemDate >= weekAgo;
 			}).length;
 		}
@@ -115,9 +117,10 @@ export default {
 			let text = '打卡历史记录\n';
 			text += '================\n\n';
 			this.historyList.forEach((item, index) => {
-				text += `${index + 1}. 时间: ${item.time}\n`;
+				text += `${index + 1}. 日期: ${item.date || '未知'}\n`;
+				text += `   时间: ${item.time}\n`;
 				text += `   坐标: ${item.lat}, ${item.lng}\n`;
-				text += `   状态: ${item.status || '成功'}\n`;
+				text += `   状态: ${item.status || '未知'}\n`;
 				if (item.reason) text += `   原因: ${item.reason}\n`;
 				text += '\n';
 			});
@@ -222,6 +225,7 @@ export default {
 	padding: 14px 0;
 }
 .history-item-left { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.history-item-date { font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 2px; }
 .history-item-time { font-size: 15px; font-weight: 600; color: #fff; }
 .history-item-coord { font-size: 12px; color: rgba(255,255,255,0.4); font-family: 'JetBrains Mono', monospace; }
 .history-item-right { display: flex; align-items: center; gap: 10px; }
