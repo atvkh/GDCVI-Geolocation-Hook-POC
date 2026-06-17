@@ -2,8 +2,8 @@
   "_comment": "versionCode 与 version 需与 utils/constants.js 中的 APP_VERSION_CODE / APP_VERSION 保持同步",
   "versionCode": 118,
   "version": "11.8.0",
-  "log": "1. 修复批量打卡功能异常的问题\n\n提取码：hxcy",
-  "url": "https://wwbhb.lanzoum.com/iq0As3s4zbkh",
-  "password": "hxcy",
+  "log": "1. 修复批量打卡功能异常的问题\n\n提取码：fwts",
+  "url": "https://wwbhb.lanzoum.com/i5ySG3s5cahg",
+  "password": "fwts",
   "forceUpdate": false
 }
