@@ -1,8 +1,8 @@
 {
   "_comment": "versionCode 与 version 需与 utils/constants.js 中的 APP_VERSION_CODE / APP_VERSION 保持同步",
-  "versionCode": 115,
-  "version": "11.5.0",
-  "log": "1. 修复历史记录不显示问题\n2. 优化开屏启动页防拉伸畸变与渐隐效果\n\n下载密码: 4w2u",
-  "url": "https://wwbhb.lanzoum.com/b016kt1hhi",
+  "versionCode": 118,
+  "version": "11.8.0",
+  "log": "1. 修复批量打卡功能异常的问题",
+  "url": "https://wwbhb.lanzoum.com/igHzc3s4kgkh",
   "forceUpdate": false
 }
