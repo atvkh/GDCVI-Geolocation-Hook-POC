@@ -73,6 +73,7 @@
 				@save-coord="handleSaveCoord"
 				@open-school-manager="showSchoolManager = true"
 				@open-map-picker="handleNativeMapPicker"
+				@clear-cache="handleClearCache"
 			/>
 		</view>
 
@@ -257,6 +258,13 @@
 				<text class="splash-subtitle" :style="splashSubtitleStyle">HUANQIAN</text>
 			</view>
 		</view>
+		<!-- 自定义美化 Toast -->
+		<view class="custom-toast-overlay" v-if="customToast.visible" :class="{ 'toast-fade-out': customToast.fadeOut }">
+			<view class="custom-toast-card">
+				<text class="material-symbols-outlined custom-toast-icon" :style="{ color: customToast.color }">{{ customToast.icon }}</text>
+				<text class="custom-toast-text">{{ customToast.message }}</text>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -291,7 +299,7 @@ export default {
 			})(),
 			buttonSelector: '.adm-button-primary',
 			showUpdateModal: false,
-			updateInfo: { version: '', log: '', url: '', forceUpdate: false },
+			updateInfo: { version: '', log: '', url: '', password: '', forceUpdate: false },
 			persistentInjectTimer: null,
 			showWarningModal: false,
 			hideWarningForever: false,
@@ -325,7 +333,15 @@ export default {
 			splashLogoStyle: '',
 			splashBrandingStyle: '',
 			splashTitleStyle: '',
-			splashSubtitleStyle: ''
+			splashSubtitleStyle: '',
+			customToast: {
+				visible: false,
+				message: '',
+				icon: 'check_circle',
+				color: 'rgb(80, 200, 160)',
+				fadeOut: false,
+				timer: null
+			}
 		}
 	},
 	watch: {
@@ -470,11 +486,11 @@ export default {
 				this.loadingText = '';
 				this.showWeb = false;
 				
-				uni.showToast({ 
-					title: isSuccess ? '打卡成功' : '打卡失败：' + (msg || ''), 
-					icon: isSuccess ? 'success' : 'none',
-					duration: 2500
-				});
+				if (isSuccess) {
+					this.showCustomToast('打卡成功', 'check_circle', 'rgb(80, 200, 160)');
+				} else {
+					this.showCustomToast('打卡失败：' + (msg || ''), 'cancel', 'rgb(240, 100, 120)', 3000);
+				}
 				
 				setTimeout(() => { this._checkinResultProcessing = false; }, 3000);
 			};
@@ -855,6 +871,7 @@ export default {
 								version: remoteData.version || '',
 								log: remoteData.log || '',
 								url: remoteData.url || '',
+								password: remoteData.password || '',
 								forceUpdate: remoteData.forceUpdate || false
 							};
 							this.showUpdateModal = true;
@@ -870,6 +887,15 @@ export default {
 		goToDownload() {
 			if (!this.updateInfo.url) {
 				return uni.showToast({ title: '下载链接无效', icon: 'none' });
+			}
+			// 自动复制提取码
+			if (this.updateInfo.password) {
+				uni.setClipboardData({
+					data: this.updateInfo.password,
+					success: () => {
+						uni.showToast({ title: '提取码已复制', icon: 'none', duration: 1500 });
+					}
+				});
 			}
 			// #ifdef APP-PLUS
 			plus.runtime.openURL(this.updateInfo.url);
@@ -925,6 +951,17 @@ export default {
 			this.isGenerating = true;
 			this.loadingText = '正在构建分析容器...';
 			this.currentUrl = url;
+
+			// #ifdef APP-PLUS
+			// 清理上次打卡残留的 Cookie，避免多账号/多次打卡时的 session 污染导致“请勿重复打卡”
+			try {
+				plus.navigator.removeAllCookie();
+				plus.navigator.removeSessionCookie();
+				console.log('[Cookie] Webview cookies cleared successfully');
+			} catch(e) {
+				console.error('[Cookie] 清理失败:', e);
+			}
+			// #endif
 
 			// #ifdef APP-PLUS
 			const self = this;
@@ -1095,6 +1132,47 @@ export default {
 					}
 				} catch (e) {}
 			}, 500);
+		},
+		handleClearCache() {
+			// #ifdef APP-PLUS
+			try {
+				plus.navigator.removeAllCookie();
+				plus.navigator.removeSessionCookie();
+				plus.cache.clear(() => {
+					this.showCustomToast('会话Cookie与缓存清理成功', 'check_circle', 'rgb(80, 200, 160)');
+				});
+			} catch(e) {
+				this.showCustomToast('清理失败: ' + e.message, 'cancel', 'rgb(240, 100, 120)');
+			}
+			// #endif
+			// #ifndef APP-PLUS
+			try {
+				localStorage.clear();
+				sessionStorage.clear();
+				this.showCustomToast('本地存储已清理', 'check_circle', 'rgb(80, 200, 160)');
+			} catch(e) {
+				this.showCustomToast('清理失败', 'cancel', 'rgb(240, 100, 120)');
+			}
+			// #endif
+		},
+		showCustomToast(message, icon = 'check_circle', color = 'rgb(80, 200, 160)', duration = 2500) {
+			if (this.customToast.timer) {
+				clearTimeout(this.customToast.timer);
+			}
+			this.customToast.visible = true;
+			this.customToast.fadeOut = false;
+			this.customToast.message = message;
+			this.customToast.icon = icon;
+			this.customToast.color = color;
+			
+			this.customToast.timer = setTimeout(() => {
+				this.customToast.fadeOut = true;
+				this.customToast.timer = setTimeout(() => {
+					this.customToast.visible = false;
+					this.customToast.fadeOut = false;
+					this.customToast.timer = null;
+				}, 300);
+			}, duration);
 		}
 	}
 }
@@ -1492,5 +1570,56 @@ export default {
 		transform: scale(1.15);
 		opacity: 1;
 	}
+}
+
+/* 自定义 Toast 样式 */
+.custom-toast-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 100000;
+	pointer-events: none;
+	animation: toast-enter 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.custom-toast-overlay.toast-fade-out {
+	opacity: 0;
+	transform: scale(0.9) translateY(-10px);
+	transition: all 0.3s ease-in-out;
+}
+@keyframes toast-enter {
+	from { opacity: 0; transform: scale(0.85) translateY(15px); }
+	to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.custom-toast-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+	padding: 24px 32px;
+	border-radius: 20px;
+	background: rgba(10, 20, 45, 0.95);
+	backdrop-filter: blur(24px) saturate(1.5);
+	-webkit-backdrop-filter: blur(24px) saturate(1.5);
+	border: 1px solid rgba(80, 140, 220, 0.25);
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	max-width: 80%;
+	box-sizing: border-box;
+}
+.custom-toast-icon {
+	font-size: 40px;
+}
+.custom-toast-text {
+	font-size: 15px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.95);
+	text-align: center;
+	line-height: 1.5;
+	letter-spacing: 0.5px;
+	word-break: break-all;
 }
 </style>
