@@ -2,7 +2,7 @@
   "_comment": "versionCode 与 version 需与 utils/constants.js 中的 APP_VERSION_CODE / APP_VERSION 保持同步",
   "versionCode": 118,
   "version": "11.8.0",
-  "log": "1. 修复批量打卡功能异常的问题",
+  "log": "1. 修复批量打卡功能异常的问题\n\n提取码：dpts",
   "url": "https://wwbhb.lanzoum.com/igHzc3s4kgkh",
   "forceUpdate": false
 }
