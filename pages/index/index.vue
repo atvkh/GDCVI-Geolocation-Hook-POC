@@ -476,11 +476,12 @@ export default {
 				const timeStr = `${hh}:${mm}:${ss}`;
 				const dateStr = now.toISOString().split('T')[0];
 				
-				this.historyList.unshift({ 
+				const newRecord = { 
 					time: timeStr, date: dateStr, lat: this.fakeLat, lng: this.fakeLng, 
 					status: isSuccess ? '成功' : '失败', reason: msg || '' 
-				});
-				secureSet('historyList', this.historyList.slice(0, MAX_HISTORY_RECORDS));
+				};
+				this.historyList = [newRecord, ...this.historyList].slice(0, MAX_HISTORY_RECORDS);
+				secureSet('historyList', this.historyList);
 				
 				this.isGenerating = false;
 				this.loadingText = '';
@@ -537,19 +538,23 @@ export default {
 			
 			this._bridgePollTimer = setInterval(() => {
 				try {
-					var raw = plus.storage.getItem('__cyber_bridge_msg');
+					var raw = plus.storage.getItem('__cyber_bridge_msgs');
 					if (raw) {
-						plus.storage.removeItem('__cyber_bridge_msg');
-						var msg = JSON.parse(raw);
-						if (msg.action === 'checkin_result' && msg.data) {
-							window.__handleCheckinResult(msg.data.isSuccess, msg.data.msg);
-						} else if (msg.action === 'hook_verify' && msg.data) {
-							if (msg.data.isHooked) {
-								this.hookStatus = 'active';
-							} else {
-								this.hookStatus = 'fail';
+						plus.storage.removeItem('__cyber_bridge_msgs');
+						var queue = JSON.parse(raw);
+						if (!Array.isArray(queue)) queue = [queue];
+						queue.forEach((item) => {
+							var msg = typeof item === 'string' ? JSON.parse(item) : item;
+							if (msg.action === 'checkin_result' && msg.data) {
+								window.__handleCheckinResult(msg.data.isSuccess, msg.data.msg);
+							} else if (msg.action === 'hook_verify' && msg.data) {
+								if (msg.data.isHooked) {
+									this.hookStatus = 'active';
+								} else {
+									this.hookStatus = 'fail';
+								}
 							}
-						}
+						});
 					}
 				} catch(e) {}
 			}, 500);
