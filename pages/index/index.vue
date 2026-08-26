@@ -455,110 +455,83 @@ export default {
 		this.startClock();
 		
 		// #ifdef APP-PLUS
-		if (typeof window !== 'undefined') {
-			window.__handleCheckinResult = (isSuccess, msg) => {
-				if (this._checkinResultProcessing) return;
-				this._checkinResultProcessing = true;
-				
-				// #ifdef APP-PLUS
-				try {
-					if (this.checkinWebview) {
-						this.checkinWebview.close();
-						this.checkinWebview = null;
-					}
-				} catch(e) {}
-				// #endif
-				
-				const now = new Date();
-				const hh = now.getHours().toString().padStart(2, '0');
-				const mm = now.getMinutes().toString().padStart(2, '0');
-				const ss = now.getSeconds().toString().padStart(2, '0');
-				const timeStr = `${hh}:${mm}:${ss}`;
-				const dateStr = now.toISOString().split('T')[0];
-				
-				const newRecord = { 
-					time: timeStr, date: dateStr, lat: this.fakeLat, lng: this.fakeLng, 
-					status: isSuccess ? '成功' : '失败', reason: msg || '' 
-				};
-				this.historyList = [newRecord, ...this.historyList].slice(0, MAX_HISTORY_RECORDS);
-				secureSet('historyList', this.historyList);
-				
-				this.isGenerating = false;
-				this.loadingText = '';
-				this.showWeb = false;
-				
-				if (isSuccess) {
-					this.showCustomToast('打卡成功', 'check_circle', 'rgb(80, 200, 160)');
-				} else {
-					this.showCustomToast('打卡失败：' + (msg || ''), 'cancel', 'rgb(240, 100, 120)', 3000);
-				}
-				
-				setTimeout(() => { this._checkinResultProcessing = false; }, 3000);
-			};
+		// uni-app V3 的 App 端逻辑层运行在独立 JS 引擎中，不存在 window 对象，
+		// 处理函数不能挂载到 window（会整块被 typeof window 门控跳过，导致历史记录永远为空）。
+		// 回传统一走 plus.storage 轮询消费；evalJS 直调通道在 App 端落在视图层，无法到达逻辑层，故不使用。
+		const handleCheckinResultFn = (isSuccess, msg) => {
+			if (this._checkinResultProcessing) return;
+			this._checkinResultProcessing = true;
 
-			window.__updateGlobalCoords = (lat, lng) => {
-				this.fakeLat = lat;
-				this.fakeLng = lng;
-				this.localLat = String(lat);
-				this.localLng = String(lng);
-				uni.setStorageSync('fakeLat', lat);
-				uni.setStorageSync('fakeLng', lng);
-			};
-
-			window.__handleBridgeMsg = (payload) => {
-				try {
-					var decoded = JSON.parse(decodeURIComponent(escape(atob(payload))));
-					if (decoded.action === 'hook_verify') {
-						const d = decoded.data;
-						console.log('[HOOK VERIFY] isHooked=' + d.isHooked + ' lat=' + d.lat + ' lng=' + d.lng + ' fakeLat=' + d.fakeLat + ' fakeLng=' + d.fakeLng);
-						if (d.isHooked) {
-							this.hookStatus = 'active';
-						} else {
-							this.hookStatus = 'fail';
-							console.error('[HOOK VERIFY] 定位注入失败！返回坐标与预设不匹配');
-						}
-					} else if (decoded.action === 'checkin_result') {
-						const d = decoded.data;
-						window.__handleCheckinResult(d.isSuccess, d.msg);
-					}
-				} catch(e) {
-					console.error('[BRIDGE] 解码失败', e);
+			try {
+				if (this.checkinWebview) {
+					this.checkinWebview.close();
+					this.checkinWebview = null;
 				}
-			};
+			} catch(e) {}
 
-			window.__onMapPickerResult = (loc) => {
-				if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
-					this.onMapPickerResult({
-						lat: loc.lat,
-						lng: loc.lng,
-						name: loc.name || '地图选点'
-					});
-				}
+			const now = new Date();
+			const hh = now.getHours().toString().padStart(2, '0');
+			const mm = now.getMinutes().toString().padStart(2, '0');
+			const ss = now.getSeconds().toString().padStart(2, '0');
+			const timeStr = `${hh}:${mm}:${ss}`;
+			const yyyy = now.getFullYear();
+			const MM = String(now.getMonth() + 1).padStart(2, '0');
+			const dd = String(now.getDate()).padStart(2, '0');
+			const dateStr = `${yyyy}-${MM}-${dd}`;
+
+			const newRecord = {
+				time: timeStr, date: dateStr, lat: this.fakeLat, lng: this.fakeLng,
+				status: isSuccess ? '成功' : '失败', reason: msg || ''
 			};
-			
-			this._bridgePollTimer = setInterval(() => {
-				try {
-					var raw = plus.storage.getItem('__cyber_bridge_msgs');
-					if (raw) {
-						plus.storage.removeItem('__cyber_bridge_msgs');
-						var queue = JSON.parse(raw);
-						if (!Array.isArray(queue)) queue = [queue];
-						queue.forEach((item) => {
+			this.historyList = [newRecord, ...this.historyList].slice(0, MAX_HISTORY_RECORDS);
+			secureSet('historyList', this.historyList);
+
+			this.isGenerating = false;
+			this.loadingText = '';
+			this.showWeb = false;
+
+			if (isSuccess) {
+				this.showCustomToast('打卡成功', 'check_circle', 'rgb(80, 200, 160)');
+			} else {
+				this.showCustomToast('打卡失败：' + (msg || ''), 'cancel', 'rgb(240, 100, 120)', 3000);
+			}
+
+			setTimeout(() => { this._checkinResultProcessing = false; }, 3000);
+		};
+
+		const consumeBridgeQueue = () => {
+			try {
+				var raw = plus.storage.getItem('__cyber_bridge_msgs');
+				if (raw) {
+					plus.storage.removeItem('__cyber_bridge_msgs');
+					var queue = JSON.parse(raw);
+					if (!Array.isArray(queue)) queue = [queue];
+					queue.forEach((item) => {
+						try {
 							var msg = typeof item === 'string' ? JSON.parse(item) : item;
 							if (msg.action === 'checkin_result' && msg.data) {
-								window.__handleCheckinResult(msg.data.isSuccess, msg.data.msg);
+								handleCheckinResultFn(msg.data.isSuccess, msg.data.msg);
 							} else if (msg.action === 'hook_verify' && msg.data) {
 								if (msg.data.isHooked) {
 									this.hookStatus = 'active';
 								} else {
 									this.hookStatus = 'fail';
+									console.error('[HOOK VERIFY] 定位注入失败！返回坐标与预设不匹配');
 								}
 							}
-						});
-					}
-				} catch(e) {}
-			}, 500);
-		}
+						} catch(itemErr) {
+							console.warn('[BRIDGE] 单条消息处理失败:', itemErr);
+						}
+					});
+				}
+			} catch(e) {
+				console.warn('[BRIDGE] 桥接队列轮询异常:', e);
+			}
+		};
+
+		this._bridgePollTimer = setInterval(consumeBridgeQueue, 500);
+		// 启动时先排空一次上次运行遗留的未消费消息
+		consumeBridgeQueue();
 		// #endif
 	},
 	onUnload() {

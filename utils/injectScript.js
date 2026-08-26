@@ -471,24 +471,11 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 						_cancelUntil = Date.now() + 60000;
 					};
 
-					if (window.plus && plus.nativeUI) {
-						plus.nativeUI.confirm('已锁定至目标区域，是否执行签到操作？', function(e) {
-							if (e.index === 0) {
-								executeAction();
-							} else {
-								cancelAction();
-							}
-						}, {
-							title: "操作确认",
-							buttons: ["确认执行", "取消"]
-						});
+					var ok = confirm('已锁定至目标区域，是否执行签到操作？');
+					if (ok) {
+						executeAction();
 					} else {
-						var ok = confirm('已锁定至目标区域，是否执行签到操作？');
-						if (ok) {
-							executeAction();
-						} else {
-							cancelAction();
-						}
+						cancelAction();
 					}
 				}
 			}
