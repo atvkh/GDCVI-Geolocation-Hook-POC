@@ -10,7 +10,7 @@
 
 <br>
 
-[![Version](https://img.shields.io/badge/version-11.5.0-blue.svg?style=for-the-badge)](https://github.com/atvkh/GDCVI-Geolocation-Hook-POC)
+[![Version](https://img.shields.io/badge/version-11.9.0-blue.svg?style=for-the-badge)](https://github.com/atvkh/GDCVI-Geolocation-Hook-POC)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-00d4ff?style=for-the-badge)]()
 [![Framework](https://img.shields.io/badge/Vue-3.x-42b883?style=for-the-badge)](https://vuejs.org/)
 [![Uni-App](https://img.shields.io/badge/Uni--App-V3-2B9939?style=for-the-badge)](https://uniapp.dcloud.io/)
@@ -334,7 +334,24 @@ npm run test:coverage
 
 ## 版本记录
 
-### v11.5.0 (当前版本)
+### v11.9.0 (当前版本)
+
+```
+✦ 版本统一：版本号同步升级至 11.9.0 / 119
+✦ 数据规整：伪造坐标与精度值统一保留 6 位小数，消除浮点长尾数导致的显示异常
+✦ 特征收敛：移除腾讯地图定位回调中的内部标记字段，降低指纹特征暴露风险
+✦ 交互升级：打卡确认弹窗迁移为系统原生对话框（plus.nativeUI.confirm），非 App 环境自动降级网页 confirm
+```
+
+### v11.7.0
+
+```
+✦ 核心修复：彻底解决多账号/多次打卡时“请勿重复打卡”的会话与缓存污染问题，每次打卡前自动执行底层 Cookie 清理
+✦ 功能新增：设置页增加手动“清除缓存与登录会话”功能按钮，支持一键强制清理全部会话状态
+✦ 最小侵入：逻辑架构优化，以最小代码变动实现缓存隔离，保持定位注入功能与 UI 风格的一致性
+```
+
+### v11.5.0
 
 ```
 ✦ 核心修复：彻底解决历史记录在特定流程下加载/显示不全的 bug，提升数据持久化读取兼容性

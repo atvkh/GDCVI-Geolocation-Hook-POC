@@ -41,7 +41,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 
 		var getFakeData = function() {
 			var jitter = function() { return (Math.random() - 0.5) * 0.00004; };
-			return { lat: F_LAT + jitter(), lng: F_LNG + jitter(), accuracy: 10 + Math.random() * 5 };
+			return { lat: Number((F_LAT + jitter()).toFixed(6)), lng: Number((F_LNG + jitter()).toFixed(6)), accuracy: Number((10 + Math.random() * 5).toFixed(1)) };
 		};
 
 		var origToString = Function.prototype.toString;
@@ -76,7 +76,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 					if (typeof suc === 'function') {
 						var fd = getFakeData();
 						var wgs = gcj02towgs84(fd.lng, fd.lat);
-						setTimeout(function() { suc({coords:{latitude: wgs[1], longitude: wgs[0], accuracy: fd.accuracy}, timestamp:Date.now()}); }, 50);
+						setTimeout(function() { suc({coords:{latitude: Number(wgs[1].toFixed(6)), longitude: Number(wgs[0].toFixed(6)), accuracy: fd.accuracy}, timestamp:Date.now()}); }, 50);
 					}
 					return name === 'watchPosition' ? Math.floor(Math.random() * 10000) : undefined;
 				}
@@ -129,7 +129,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 								var fakeMethod = function(suc) {
 									if (suc) {
 										var fd = getFakeData();
-										setTimeout(function() { suc({ module: 'geolocation', type: 'h5', lat: fd.lat, lng: fd.lng, accuracy: fd.accuracy, __cyber_fake__: true }); }, 50);
+										setTimeout(function() { suc({ module: 'geolocation', type: 'h5', lat: fd.lat, lng: fd.lng, accuracy: fd.accuracy }); }, 50);
 									}
 								};
 								fakeMethod.__cyber_name = prop;
@@ -443,8 +443,7 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 					confirmBoxShown = true;
 					_targetBtn = targetBtn;
 
-					var ok = confirm('已锁定至目标区域，是否执行签到操作？');
-					if (ok) {
+					var executeAction = function() {
 						var tip = document.createElement('div');
 						tip.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:#28a745;padding:16px 32px;border-radius:16px;z-index:2147483647;font-size:16px;font-weight:bold;pointer-events:none;';
 						tip.textContent = '执行中...';
@@ -465,9 +464,31 @@ export const generateCoreScript = (fakeLat, fakeLng, buttonSelector, defaultLat,
 								clearCheckinPending();
 							}
 						}, CHECKIN_PENDING_MS);
-					} else {
+					};
+
+					var cancelAction = function() {
 						confirmBoxShown = false;
 						_cancelUntil = Date.now() + 60000;
+					};
+
+					if (window.plus && plus.nativeUI) {
+						plus.nativeUI.confirm('已锁定至目标区域，是否执行签到操作？', function(e) {
+							if (e.index === 0) {
+								executeAction();
+							} else {
+								cancelAction();
+							}
+						}, {
+							title: "操作确认",
+							buttons: ["确认执行", "取消"]
+						});
+					} else {
+						var ok = confirm('已锁定至目标区域，是否执行签到操作？');
+						if (ok) {
+							executeAction();
+						} else {
+							cancelAction();
+						}
 					}
 				}
 			}

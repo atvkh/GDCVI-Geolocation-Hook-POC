@@ -60,6 +60,7 @@
 			<view class="settings-actions">
 				<view class="btn-settings-secondary" @click="backToSchool" v-if="!useRandomPreset"><text>恢复随机模式</text></view>
 				<view class="btn-settings-primary" @click="saveCoordSettings"><text>更新位置协议</text></view>
+				<view class="btn-settings-danger" @click="clearCache"><text>清除缓存与登录会话</text></view>
 			</view>
 
 			<view class="settings-divider"></view>
@@ -139,6 +140,9 @@ export default {
 				data: 'Atvkh@outlook.com',
 				success: () => uni.showToast({ title: '邮箱已复制', icon: 'none' })
 			});
+		},
+		clearCache() {
+			this.$emit('clear-cache');
 		}
 	}
 }
@@ -359,6 +363,21 @@ export default {
 	box-sizing: border-box;
 }
 .btn-settings-secondary:active { transform: scale(0.98); background: rgba(20, 40, 75, 0.5); }
+.btn-settings-danger {
+	width: 100%;
+	height: 52px;
+	border-radius: 16px;
+	font-size: 15px;
+	font-weight: 600;
+	background: rgba(220, 38, 38, 0.12);
+	backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+	border: 1px solid rgba(220, 38, 38, 0.25);
+	color: #f87171;
+	display: flex; align-items: center; justify-content: center;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	box-sizing: border-box;
+}
+.btn-settings-danger:active { transform: scale(0.98); background: rgba(220, 38, 38, 0.2); }
 .settings-divider { height: 1px; background: rgba(255, 255, 255, 0.06); margin: 16px 0; }
 
 .settings-footer { display: flex; gap: 12px; }
